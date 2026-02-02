@@ -1,0 +1,27 @@
+# FastAPI & Server
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+
+# Database (MySQL)
+sqlalchemy>=2.0.25
+aiomysql>=0.2.0
+pymysql>=1.1.0
+greenlet>=3.0.0
+
+# HTTP Client
+httpx>=0.26.0
+
+# Scheduler
+apscheduler>=3.10.4
+
+# Validation & Utils
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+python-jose[cryptography]>=3.3.0
+
+# CORS
+starlette>=0.35.0
+
+# Dev
+python-dotenv>=1.0.0

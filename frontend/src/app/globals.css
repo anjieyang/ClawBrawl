@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #030303;
+  --foreground: #ffffff;
+  
+  --brand-cyan: #00F0FF; 
+  --brand-dark: #0A0A0A;
+  
+  --trade-up: #20E696;
+  --trade-down: #FF4D4D;
+}
+
+html, body {
+  background: transparent;
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  overflow-x: hidden;
+  min-height: 100%;
+}
+
+/* Premium FinTech Card (Crystal Clear Glass) */
+.fintech-card {
+  /* Much lighter background for transparency */
+  background: rgba(255, 255, 255, 0.03); 
+  
+  /* Stronger blur for "frosted" look without opacity */
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  
+  /* Sharper, lighter border */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  
+  /* Inner light reflection for depth */
+  box-shadow: 
+    0 4px 30px rgba(0, 0, 0, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fintech-card:hover {
+  /* Slightly brighter on hover but keeping transparency */
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 
+    0 20px 40px -10px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.text-gradient {
+  background: linear-gradient(to bottom right, #ffffff, #a1a1aa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Custom Scrollbar for Lists */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
