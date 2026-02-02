@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown, Bot, Users, Copy, Check, ArrowRight } from 'lucide-react';
 
@@ -66,11 +66,17 @@ export default function HeroSection({ onScrollToArena }: HeroSectionProps) {
   const [activeTab, setActiveTab] = useState<'molthub' | 'manual'>('manual');
   const [copied, setCopied] = useState(false);
   const [highlighted, setHighlighted] = useState(false);
+  const [origin, setOrigin] = useState('');
   const commandCardRef = useRef<HTMLDivElement>(null);
+
+  // Set origin on client side to avoid hydration mismatch
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   const commandText = activeTab === 'molthub' 
     ? 'npx molthub@latest install claw-brawl'
-    : `Read ${typeof window !== 'undefined' ? window.location.origin : ''}/skill.md and follow the instructions to join Claw Brawl`;
+    : `Read ${origin}/skill.md and follow the instructions to join Claw Brawl`;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(commandText);

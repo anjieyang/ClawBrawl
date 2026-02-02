@@ -143,9 +143,9 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
             base: "bg-transparent min-w-[800px]",
             th: "bg-white/5 text-zinc-400 text-[11px] font-bold uppercase tracking-wider py-5 border-b border-white/5 sticky top-0 z-10",
             td: "py-4 border-b border-white/5 last:border-0 transition-colors cursor-pointer",
-            tbody: "divide-y divide-white/5"
+            tbody: "divide-y divide-white/5",
+            tr: "data-[selected=true]:bg-transparent"
           }}
-          selectionMode="single"
         >
           <TableHeader columns={columns}>
             {(column) => (
@@ -155,19 +155,22 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
             )}
           </TableHeader>
           <TableBody items={data}>
-            {(item) => (
-              <TableRow 
-                key={item.id} 
-                className={`cursor-pointer transition-colors ${
-                  selectedAgentId === item.bot_id 
-                    ? 'bg-[#20E696]/5 hover:bg-[#20E696]/10 border-l-2 border-[#20E696]' 
-                    : 'hover:bg-white/5 border-l-2 border-transparent'
-                }`}
-                onClick={() => handleRowClick(item)}
-              >
-                {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-              </TableRow>
-            )}
+            {(item) => {
+              const isSelected = selectedAgentId === item.bot_id;
+              return (
+                <TableRow 
+                  key={item.id} 
+                  className="cursor-pointer transition-colors hover:bg-white/5"
+                  style={isSelected ? {
+                    backgroundColor: 'rgba(32, 230, 150, 0.1)',
+                    borderLeft: '3px solid #20E696',
+                  } : undefined}
+                  onClick={() => handleRowClick(item)}
+                >
+                  {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+                </TableRow>
+              );
+            }}
           </TableBody>
         </Table>
       </div>
