@@ -6,10 +6,10 @@
   --background: #f1f5f9; /* Slate 100 - Cool Gray */
   --foreground: #0f172a; /* Slate 900 */
   
-  --brand-cyan: #0891b2; 
+  --brand-cyan: #D9A000; 
   --brand-dark: #f8fafc;
   
-  --trade-up: #16a34a; /* Green 600 */
+  --trade-up: #EA4C1F; /* Orange-Red */
   --trade-down: #dc2626; /* Red 600 */
   
   --card-bg: rgba(255, 255, 255, 0.85);
@@ -31,10 +31,10 @@
   --background: #030303;
   --foreground: #ffffff;
   
-  --brand-cyan: #00F0FF; 
+  --brand-cyan: #FFB800; 
   --brand-dark: #0A0A0A;
   
-  --trade-up: #20E696;
+  --trade-up: #FF5722;
   --trade-down: #FF4D4D;
   
   --card-bg: rgba(255, 255, 255, 0.03);

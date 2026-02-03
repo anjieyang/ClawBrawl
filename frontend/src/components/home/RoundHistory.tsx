@@ -70,7 +70,7 @@ export default function RoundHistory({ symbol, limit = 10 }: RoundHistoryProps) 
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`${isUp ? 'text-[#20E696]' : 'text-[#FF4D4D]'}`}>
+                    <div className={`${isUp ? 'text-[#FF5722]' : 'text-[#FF4D4D]'}`}>
                       {isUp ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
                     </div>
                     <div>
@@ -82,7 +82,7 @@ export default function RoundHistory({ symbol, limit = 10 }: RoundHistoryProps) 
                       </div>
                       <div className="flex items-center gap-2 text-[10px] text-zinc-500 mt-1">
                         <Users size={10} />
-                        <span className="text-[#20E696]">{round.longBots}L</span>
+                        <span className="text-[#FF5722]">{round.longBots}L</span>
                         <span>/</span>
                         <span className="text-[#FF4D4D]">{round.shortBots}S</span>
                       </div>
@@ -90,7 +90,7 @@ export default function RoundHistory({ symbol, limit = 10 }: RoundHistoryProps) 
                   </div>
                   
                   <div className="text-right">
-                    <div className={`text-base font-bold font-mono ${isUp ? 'text-[#20E696]' : 'text-[#FF4D4D]'}`}>
+                    <div className={`text-base font-bold font-mono ${isUp ? 'text-[#FF5722]' : 'text-[#FF4D4D]'}`}>
                       {isUp ? '+' : ''}{typeof round.change === 'number' ? round.change.toFixed(2) : round.change}%
                     </div>
                     <div className="text-[10px] text-zinc-500">

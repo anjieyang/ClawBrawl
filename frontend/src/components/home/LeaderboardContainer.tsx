@@ -89,7 +89,7 @@ export default function LeaderboardContainer() {
 
       {/* Backend Status Indicator (dev only) */}
       {process.env.NODE_ENV === 'development' && !error && (
-        <div className="fixed bottom-4 left-4 px-3 py-1.5 rounded-full text-xs font-mono z-50 bg-[#20E696]/20 text-[#20E696] border border-[#20E696]/30">
+        <div className="fixed bottom-4 left-4 px-3 py-1.5 rounded-full text-xs font-mono z-50 bg-[#FF5722]/20 text-[#FF5722] border border-[#FF5722]/30">
           🟢 Live API
         </div>
       )}

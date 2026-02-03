@@ -286,17 +286,17 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
             <div className="flex justify-between items-start mb-6 z-10">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="p-1.5 rounded-md bg-[#16a34a]/10 dark:bg-[#20E696]/10 text-[#16a34a] dark:text-[#20E696]">
+                  <div className="p-1.5 rounded-md bg-[#EA4C1F]/10 dark:bg-[#FF5722]/10 text-[#EA4C1F] dark:text-[#FF5722]">
                     <ArrowUp size={16} strokeWidth={3} />
                   </div>
-                  <span className="text-[#16a34a] dark:text-[#20E696] font-bold tracking-wide">LONG</span>
+                  <span className="text-[#EA4C1F] dark:text-[#FF5722] font-bold tracking-wide">LONG</span>
                 </div>
                 <p className="text-slate-500 dark:text-zinc-500 text-xs">Bullish Faction</p>
               </div>
               <div className="text-right">
                  <span className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{longPercentage}%</span>
-                 <div className="h-1 w-12 bg-[#16a34a]/30 dark:bg-[#20E696]/30 rounded-full ml-auto mt-1 overflow-hidden">
-                   <div className="h-full bg-[#16a34a] dark:bg-[#20E696]" style={{width: `${longPercentage}%`}} />
+                 <div className="h-1 w-12 bg-[#EA4C1F]/30 dark:bg-[#FF5722]/30 rounded-full ml-auto mt-1 overflow-hidden">
+                   <div className="h-full bg-[#EA4C1F] dark:bg-[#FF5722]" style={{width: `${longPercentage}%`}} />
                  </div>
               </div>
             </div>
@@ -320,7 +320,7 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
                           <p className="font-medium text-sm text-slate-700 dark:text-zinc-200 truncate">{bot.name}</p>
                           <div className="flex items-center gap-2">
                              <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono bg-slate-200/50 dark:bg-white/5 px-1.5 rounded">Rank #{i + 1}</span>
-                             <span className={`text-[10px] font-mono ${(winRate || 0) > 60 ? 'text-[#16a34a] dark:text-[#20E696]' : 'text-slate-400 dark:text-zinc-500'}`}>{winRate}% WR</span>
+                             <span className={`text-[10px] font-mono ${(winRate || 0) > 60 ? 'text-[#EA4C1F] dark:text-[#FF5722]' : 'text-slate-400 dark:text-zinc-500'}`}>{winRate}% WR</span>
                           </div>
                         </div>
                       </div>
@@ -340,7 +340,7 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
                           content: "bg-zinc-900 border border-white/10 shadow-xl"
                         }}
                       >
-                        <div className="mb-2 px-2 py-1.5 bg-[#20E696]/5 border-l-2 border-[#20E696]/30 rounded-r cursor-help">
+                        <div className="mb-2 px-2 py-1.5 bg-[#FF5722]/5 border-l-2 border-[#FF5722]/30 rounded-r cursor-help">
                           <p className="text-[11px] text-zinc-300 italic line-clamp-2">"{bot.reason}"</p>
                         </div>
                       </Tooltip>
@@ -365,7 +365,7 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
                       </div>
                       <div className="text-right">
                         <Tooltip content="Current Season Score" closeDelay={0}>
-                          <span className="text-xs font-mono font-bold text-[#20E696] cursor-help">
+                          <span className="text-xs font-mono font-bold text-[#FF5722] cursor-help">
                             {bot.score} <span className="text-[10px] opacity-60 font-normal text-white">PTS</span>
                           </span>
                         </Tooltip>
@@ -377,7 +377,7 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
             </AnimatePresence>
           </div>
           
-          <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#20E696]/5 to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#FF5722]/5 to-transparent pointer-events-none" />
         </div>
 
         {/* CENTER CARD: PRICE ACTION */}
@@ -404,7 +404,7 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
                     <div className="flex justify-end">
                         <div className="flex flex-col items-end w-[130px]">
                             <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Change</span>
-                            <div className={`flex items-center gap-1.5 ${isUp ? 'text-[#20E696]' : 'text-[#FF4D4D]'}`}>
+                            <div className={`flex items-center gap-1.5 ${isUp ? 'text-[#FF5722]' : 'text-[#FF4D4D]'}`}>
                                 {isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                                 <span className="text-lg font-bold tabular-nums">{priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%</span>
                             </div>
@@ -435,7 +435,7 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
                    <span>Short Volume</span>
                 </div>
                 <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden flex">
-                   <div className="h-full bg-[#20E696] transition-all duration-500 shadow-[0_0_10px_#20E696]" style={{ width: `${longPercentage}%` }} />
+                   <div className="h-full bg-[#FF5722] transition-all duration-500 shadow-[0_0_10px_#FF5722]" style={{ width: `${longPercentage}%` }} />
                    <div className="h-full bg-[#FF4D4D] transition-all duration-500 shadow-[0_0_10px_#FF4D4D]" style={{ width: `${100 - longPercentage}%` }} />
                 </div>
              </div>
@@ -544,7 +544,7 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
 
       {/* 3. Bottom Ticker - Recent Rounds Results */}
       <div className="h-14 fintech-card rounded-2xl flex items-center px-6 gap-6 overflow-hidden">
-        <div className="flex items-center gap-2 text-[#00F0FF]">
+        <div className="flex items-center gap-2 text-[#FFB800]">
             <Activity size={16} className="animate-pulse" />
             <span className="text-xs font-bold uppercase tracking-widest whitespace-nowrap">Recent Results</span>
         </div>
@@ -554,10 +554,10 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
              recentRounds.slice(0, 5).map((r) => (
                <div key={r.id} className="flex items-center gap-2 text-sm whitespace-nowrap">
                   <span className="text-zinc-500 font-mono text-xs">#{r.id}</span>
-                  <span className={r.result === 'up' ? 'text-[#20E696]' : 'text-[#FF4D4D]'}>
+                  <span className={r.result === 'up' ? 'text-[#FF5722]' : 'text-[#FF4D4D]'}>
                     {r.result === 'up' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                   </span>
-                  <span className={`font-mono font-bold ${r.result === 'up' ? 'text-[#20E696]' : 'text-[#FF4D4D]'}`}>
+                  <span className={`font-mono font-bold ${r.result === 'up' ? 'text-[#FF5722]' : 'text-[#FF4D4D]'}`}>
                     {r.change >= 0 ? '+' : ''}{r.change.toFixed(2)}%
                   </span>
                   <span className="text-zinc-600">•</span>
@@ -623,16 +623,16 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
             {/* Content - Left/Right Split */}
             <div className="flex-1 flex min-h-0 divide-x divide-white/10">
               {/* LONG Side */}
-              <div className="flex-1 flex flex-col bg-[#20E696]/[0.02]">
+              <div className="flex-1 flex flex-col bg-[#FF5722]/[0.02]">
                 {/* Long Stats Header */}
                 <div className="p-6 border-b border-white/5 space-y-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-[#20E696]/10">
-                        <ArrowUp size={24} className="text-[#20E696]" />
+                      <div className="p-2 rounded-lg bg-[#FF5722]/10">
+                        <ArrowUp size={24} className="text-[#FF5722]" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-bold text-[#20E696]">BULLISH SENTIMENT</h3>
+                        <h3 className="text-lg font-bold text-[#FF5722]">BULLISH SENTIMENT</h3>
                         <p className="text-sm text-zinc-500">{bets.long.filter(b => b.reason).length} Analysis Reports</p>
                       </div>
                     </div>
@@ -661,7 +661,7 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
                             <div className="flex items-center gap-2 text-xs">
                               <span className="w-8 text-zinc-500">High</span>
                               <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                                <div className="h-full bg-[#20E696]" style={{ width: stats ? `${(stats.distribution.high / stats.total) * 100}%` : '0%' }} />
+                                <div className="h-full bg-[#FF5722]" style={{ width: stats ? `${(stats.distribution.high / stats.total) * 100}%` : '0%' }} />
                               </div>
                               <span className="w-6 text-right text-zinc-300">{stats?.distribution.high ?? 0}</span>
                             </div>
@@ -687,7 +687,7 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
                           <div className="text-xs font-semibold text-zinc-400 mb-3 uppercase tracking-wider">Key Themes</div>
                           <div className="flex flex-wrap gap-2 overflow-hidden max-h-[60px]">
                             {keywords.length > 0 ? keywords.slice(0, 5).map((kw, i) => (
-                              <span key={i} className="px-2 py-1 rounded-md bg-[#20E696]/10 text-[#20E696] text-xs border border-[#20E696]/20">
+                              <span key={i} className="px-2 py-1 rounded-md bg-[#FF5722]/10 text-[#FF5722] text-xs border border-[#FF5722]/20">
                                 {kw.keyword} <span className="opacity-50 ml-1">{kw.count}</span>
                               </span>
                             )) : (
@@ -711,12 +711,12 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
                     bets.long.filter(b => b.reason).map((bot) => (
                       <div 
                         key={bot.id}
-                        className="bg-zinc-900 border border-white/5 rounded-xl p-5 hover:border-[#20E696]/30 transition-all group"
+                        className="bg-zinc-900 border border-white/5 rounded-xl p-5 hover:border-[#FF5722]/30 transition-all group"
                       >
                         {/* Agent Info Row */}
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center gap-3">
-                            <Avatar src={bot.avatar} size="md" className="ring-2 ring-black group-hover:ring-[#20E696]/30 transition-all" />
+                            <Avatar src={bot.avatar} size="md" className="ring-2 ring-black group-hover:ring-[#FF5722]/30 transition-all" />
                             <div>
                               <div className="flex items-center gap-2">
                                 <p className="font-bold text-white text-base">{bot.name}</p>
@@ -736,7 +736,7 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
                           {bot.confidence !== undefined && (
                             <div className="flex flex-col items-end">
                               <div className={`px-3 py-1 rounded-lg text-sm font-bold ${
-                                bot.confidence >= 80 ? 'bg-[#20E696]/10 text-[#20E696] border border-[#20E696]/20' :
+                                bot.confidence >= 80 ? 'bg-[#FF5722]/10 text-[#FF5722] border border-[#FF5722]/20' :
                                 bot.confidence >= 60 ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
                                 'bg-zinc-800 text-zinc-400 border border-zinc-700'
                               }`}>
@@ -747,7 +747,7 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
                         </div>
 
                         {/* Full Analysis */}
-                        <div className="relative pl-4 border-l-2 border-[#20E696]/20">
+                        <div className="relative pl-4 border-l-2 border-[#FF5722]/20">
                           <p className="text-[15px] text-zinc-300 leading-relaxed">
                             "{bot.reason}"
                           </p>

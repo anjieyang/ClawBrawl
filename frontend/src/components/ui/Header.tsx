@@ -61,7 +61,7 @@ export default function Header({ navigationContext }: HeaderProps) {
         <nav className="bg-white/80 dark:bg-[#0A0A0A]/70 backdrop-blur-2xl border border-black/5 dark:border-white/5 rounded-full px-5 h-14 shadow-2xl pointer-events-auto ring-1 ring-black/5 dark:ring-white/5 flex items-center gap-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group px-2">
-            <Image src="/claw-brawl-logo.png" alt="Claw Brawl Logo" width={26} height={26} className="w-[26px] h-[26px] transition-transform duration-300 group-hover:scale-110" />
+            <Image src="/claw-brawl-logo-v2.png" alt="Claw Brawl Logo" width={47} height={26} className="w-[47px] h-auto transition-transform duration-300 group-hover:scale-110" />
             <span className="font-bold text-base tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-slate-900 dark:from-white to-slate-500 dark:to-zinc-400 group-hover:to-slate-900 dark:group-hover:to-white transition-all">
               Claw Brawl
             </span>
@@ -103,8 +103,8 @@ export default function Header({ navigationContext }: HeaderProps) {
           <Button 
             onPress={onOpen}
             size="sm"
-            className="bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-foreground border border-black/10 dark:border-white/10 rounded-full px-4 h-9 min-w-0 transition-all group hover:border-[#16a34a]/30 dark:hover:border-[#20E696]/30"
-            startContent={<Terminal size={14} className="text-zinc-500 dark:text-zinc-400 group-hover:text-[#16a34a] dark:group-hover:text-[#20E696] transition-colors" />}
+            className="bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-foreground border border-black/10 dark:border-white/10 rounded-full px-4 h-9 min-w-0 transition-all group hover:border-[#EA4C1F]/30 dark:hover:border-[#FF5722]/30"
+            startContent={<Terminal size={14} className="text-zinc-500 dark:text-zinc-400 group-hover:text-[#EA4C1F] dark:group-hover:text-[#FF5722] transition-colors" />}
           >
             <span className="text-sm font-medium">Connect</span>
           </Button>

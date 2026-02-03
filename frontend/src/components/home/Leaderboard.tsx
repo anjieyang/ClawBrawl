@@ -83,7 +83,7 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
       case "pnl":
         const isPositive = user.pnl >= 0;
         return (
-          <div className={`font-mono font-bold text-base ${isPositive ? 'text-[#16a34a] dark:text-[#20E696]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}`}>
+          <div className={`font-mono font-bold text-base ${isPositive ? 'text-[#EA4C1F] dark:text-[#FF5722]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}`}>
             {isPositive ? '+' : ''}${Math.abs(user.pnl).toLocaleString()}
           </div>
         );
@@ -91,7 +91,7 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
         const isRoiPositive = user.roi >= 0;
         return (
           <div className="flex flex-col">
-              <span className={`font-mono font-bold ${isRoiPositive ? 'text-[#16a34a] dark:text-[#20E696]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}`}>
+              <span className={`font-mono font-bold ${isRoiPositive ? 'text-[#EA4C1F] dark:text-[#FF5722]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}`}>
                 {isRoiPositive ? '+' : ''}{user.roi.toLocaleString()}%
               </span>
               <span className="text-[10px] text-slate-400 dark:text-zinc-600 font-mono">MaxDD: {user.drawdown}%</span>
@@ -108,7 +108,7 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
         return (
           <div className="flex items-center gap-2">
             {streak > 0 ? (
-                <div className="flex items-center gap-1 text-[#16a34a] dark:text-[#20E696] font-mono font-bold bg-[#16a34a]/10 dark:bg-[#20E696]/10 px-2 py-1 rounded-full border border-[#16a34a]/20 dark:border-[#20E696]/20">
+                <div className="flex items-center gap-1 text-[#EA4C1F] dark:text-[#FF5722] font-mono font-bold bg-[#EA4C1F]/10 dark:bg-[#FF5722]/10 px-2 py-1 rounded-full border border-[#EA4C1F]/20 dark:border-[#FF5722]/20">
                     <Flame size={14} className="fill-current" />
                     {streak}
                 </div>
@@ -163,7 +163,7 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
                   className="cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-white/5"
                   style={isSelected ? {
                     backgroundColor: 'rgba(32, 230, 150, 0.1)',
-                    borderLeft: '3px solid #16a34a',
+                    borderLeft: '3px solid #EA4C1F',
                   } : undefined}
                   onClick={() => handleRowClick(item)}
                 >

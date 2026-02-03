@@ -307,14 +307,14 @@ export default function PriceChart({ openPrice, currentPrice, isUp, timeLeft }: 
           <Area
             type="monotone"
             dataKey="above"
-            stroke="#20E696"
+            stroke="#FF5722"
             strokeOpacity={0.9}
             strokeWidth={2}
-            fill="#20E696"
+            fill="#FF5722"
             fillOpacity={0.18}
             baseValue={openPrice}
             isAnimationActive={false}
-            dot={<CustomizedDot data={splitSeries} color="#20E696" dataKey="above" isActiveSeries={isUp} />}
+            dot={<CustomizedDot data={splitSeries} color="#FF5722" dataKey="above" isActiveSeries={isUp} />}
             connectNulls={false}
           />
 

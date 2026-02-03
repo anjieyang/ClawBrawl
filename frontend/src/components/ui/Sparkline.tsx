@@ -12,7 +12,7 @@ export const Sparkline = ({
   data, 
   width = 100, 
   height = 30, 
-  color = "#20E696", 
+  color = "#FF5722", 
   strokeWidth = 2 
 }: SparklineProps) => {
   if (!data || data.length < 2) return null;
@@ -30,7 +30,7 @@ export const Sparkline = ({
 
   // Determine trend color if not overridden
   const isUp = data[data.length - 1] >= data[0];
-  const finalColor = color === "auto" ? (isUp ? "#20E696" : "#FF4D4D") : color;
+  const finalColor = color === "auto" ? (isUp ? "#FF5722" : "#FF4D4D") : color;
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">

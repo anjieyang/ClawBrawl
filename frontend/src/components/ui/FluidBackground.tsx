@@ -22,7 +22,7 @@ export const FluidBackground = () => {
         style={{ background: isDark ? '#030303' : '#f8fafc' }}
       />
 
-      {/* Orb 1: Cyan - Top Left */}
+      {/* Orb 1: Golden - Top Left */}
       <motion.div
         animate={{
           x: [0, 80, -50, 0],
@@ -41,13 +41,13 @@ export const FluidBackground = () => {
           top: '-30%',
           left: '-20%',
           background: isDark 
-            ? 'radial-gradient(circle, rgba(0, 220, 255, 0.15) 0%, rgba(0, 220, 255, 0) 70%)'
-            : 'radial-gradient(circle, rgba(14, 165, 233, 0.15) 0%, rgba(14, 165, 233, 0) 70%)',
+            ? 'radial-gradient(circle, rgba(255, 184, 0, 0.15) 0%, rgba(255, 184, 0, 0) 70%)'
+            : 'radial-gradient(circle, rgba(217, 160, 0, 0.15) 0%, rgba(217, 160, 0, 0) 70%)',
           filter: 'blur(80px)',
         }}
       />
 
-      {/* Orb 2: Purple/Indigo - Bottom Right */}
+      {/* Orb 2: Orange-Red - Bottom Right */}
       <motion.div
         animate={{
           x: [0, -60, 40, 0],
@@ -66,13 +66,13 @@ export const FluidBackground = () => {
           bottom: '-20%',
           right: '-15%',
           background: isDark
-            ? 'radial-gradient(circle, rgba(130, 80, 255, 0.12) 0%, rgba(130, 80, 255, 0) 70%)'
-            : 'radial-gradient(circle, rgba(147, 51, 234, 0.12) 0%, rgba(147, 51, 234, 0) 70%)',
+            ? 'radial-gradient(circle, rgba(255, 87, 34, 0.12) 0%, rgba(255, 87, 34, 0) 70%)'
+            : 'radial-gradient(circle, rgba(234, 76, 31, 0.12) 0%, rgba(234, 76, 31, 0) 70%)',
           filter: 'blur(90px)',
         }}
       />
 
-      {/* Orb 3: Green/Teal - Center Left */}
+      {/* Orb 3: Deep Orange - Center Left */}
       <motion.div
         animate={{
           x: [0, 100, -60, 0],
@@ -91,8 +91,8 @@ export const FluidBackground = () => {
           bottom: '0%',
           left: '10%',
           background: isDark
-            ? 'radial-gradient(circle, rgba(32, 230, 150, 0.1) 0%, rgba(32, 230, 150, 0) 70%)'
-            : 'radial-gradient(circle, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0) 70%)',
+            ? 'radial-gradient(circle, rgba(255, 120, 50, 0.1) 0%, rgba(255, 120, 50, 0) 70%)'
+            : 'radial-gradient(circle, rgba(234, 76, 31, 0.1) 0%, rgba(234, 76, 31, 0) 70%)',
           filter: 'blur(100px)',
         }}
       />

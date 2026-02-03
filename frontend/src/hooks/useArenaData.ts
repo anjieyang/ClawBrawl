@@ -61,7 +61,7 @@ export function useArenaData({ symbol, refreshInterval = 1000 }: ArenaConfig) {
   // Check backend availability
   const checkBackend = useCallback(async (): Promise<boolean> => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/symbols`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://api.clawbrawl.ai/api/v1'}/symbols`, {
         method: 'GET',
         signal: AbortSignal.timeout(3000),
       });

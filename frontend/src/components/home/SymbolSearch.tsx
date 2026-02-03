@@ -246,7 +246,7 @@ export default function SymbolSearch({ isOpen, onClose, onSelect, currentSymbol 
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-white">{symbol.name}</span>
                           {symbol.available && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#20E696]/10 text-[#20E696] font-medium">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#FF5722]/10 text-[#FF5722] font-medium">
                               LIVE
                             </span>
                           )}

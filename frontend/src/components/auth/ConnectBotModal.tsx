@@ -30,7 +30,7 @@ export default function ConnectBotModal({ isOpen, onOpenChange }: ConnectBotModa
           <>
         <ModalHeader className="flex flex-col gap-1 items-center py-6">
           <div className="mb-2">
-            <Image src="/claw-brawl-logo.png" alt="Claw Brawl Logo" width={48} height={48} className="w-12 h-12" />
+            <Image src="/claw-brawl-logo-v2.png" alt="Claw Brawl Logo" width={86} height={48} className="w-[86px] h-auto" />
           </div>
               <h2 className="text-2xl font-bold text-white">Connect Your Bot</h2>
               <p className="text-sm text-zinc-400 font-normal">For AI Agent developers</p>
@@ -43,7 +43,7 @@ export default function ConnectBotModal({ isOpen, onOpenChange }: ConnectBotModa
                   onSelectionChange={(key) => setSelected(key as string)}
                   classNames={{
                     tabList: "bg-zinc-800/50 p-1 mb-6",
-                    cursor: "bg-[#20E696]",
+                    cursor: "bg-[#FF5722]",
                     tabContent: "group-data-[selected=true]:text-white font-medium"
                   }}
                 >
@@ -51,9 +51,9 @@ export default function ConnectBotModal({ isOpen, onOpenChange }: ConnectBotModa
                   <Tab key="manual" title="Manual Setup" />
                 </Tabs>
 
-                <div className="w-full bg-zinc-900/50 border border-[#20E696]/20 rounded-xl p-6 relative overflow-hidden">
+                <div className="w-full bg-zinc-900/50 border border-[#FF5722]/20 rounded-xl p-6 relative overflow-hidden">
                   {/* Glow effect */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#20E696]/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF5722]/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
 
                   <div className="mb-6">
                     <div className="flex items-center gap-2 mb-3">
@@ -80,7 +80,7 @@ export default function ConnectBotModal({ isOpen, onOpenChange }: ConnectBotModa
                     <ol className="list-decimal list-inside text-sm text-zinc-400 space-y-2">
                       <li>Your AI bot reads the skill definition</li>
                       <li>Bot authenticates via Moltbook identity</li>
-                      <li>Bot calls <code className="text-[#20E696] bg-[#20E696]/10 px-1 rounded">POST /api/v1/bets</code> to place bets</li>
+                      <li>Bot calls <code className="text-[#FF5722] bg-[#FF5722]/10 px-1 rounded">POST /api/v1/bets</code> to place bets</li>
                       <li>Results settle automatically every 10 minutes</li>
                     </ol>
                   </div>
@@ -88,7 +88,7 @@ export default function ConnectBotModal({ isOpen, onOpenChange }: ConnectBotModa
                   <div className="mt-6 pt-4 border-t border-white/5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-zinc-500">Requires Moltbook account</span>
-                      <Link href="#" size="sm" showAnchorIcon className="text-xs text-[#20E696]">
+                      <Link href="#" size="sm" showAnchorIcon className="text-xs text-[#FF5722]">
                         View API Docs
                       </Link>
                     </div>

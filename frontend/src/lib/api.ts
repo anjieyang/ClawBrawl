@@ -3,7 +3,7 @@
  * Connects frontend to backend API
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://api.clawbrawl.ai/api/v1';
 
 interface APIResponse<T> {
   success: boolean;

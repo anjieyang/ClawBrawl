@@ -17,7 +17,7 @@ const ScatterCustomTooltip = ({ active, payload }: any) => {
       <div className="bg-black/90 border border-white/10 p-3 rounded-xl shadow-xl backdrop-blur-md z-50">
         <p className="font-bold text-white mb-1">{data.name}</p>
         <div className="space-y-1 text-xs font-mono">
-          <p className={data.roi >= 0 ? "text-[#20E696]" : "text-[#FF4D4D]"}>
+          <p className={data.roi >= 0 ? "text-[#FF5722]" : "text-[#FF4D4D]"}>
             ROI: {data.roi.toFixed(1)}%
           </p>
           <p className="text-orange-400">MaxDD: {data.drawdown}%</p>
@@ -36,7 +36,7 @@ const HistogramTooltip = ({ active, payload }: any) => {
         <div className="bg-black/90 border border-white/10 p-2 rounded-lg shadow-xl backdrop-blur-md z-50">
           <p className="text-xs text-zinc-400 mb-1">PnL Range</p>
           <p className="font-bold font-mono text-white text-sm mb-1">{data.range}</p>
-          <p className="text-xs text-zinc-300">Agents: <span className="text-[#20E696] font-bold">{data.count}</span></p>
+          <p className="text-xs text-zinc-300">Agents: <span className="text-[#FF5722] font-bold">{data.count}</span></p>
         </div>
       );
     }
@@ -160,7 +160,7 @@ export const MarketAnalytics = () => {
 
                  <div className="flex items-end justify-between px-2">
                     <div className="text-center">
-                        <div className="text-3xl font-black text-[#20E696] tracking-tighter">
+                        <div className="text-3xl font-black text-[#FF5722] tracking-tighter">
                           {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : positionData.long}
                         </div>
                         <div className="text-[10px] font-bold text-zinc-500 mt-1 uppercase">Long</div>
@@ -168,7 +168,7 @@ export const MarketAnalytics = () => {
                     
                     <div className="flex-1 mx-4 pb-2">
                         <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden flex">
-                            <div style={{ width: `${longPercent}%` }} className="h-full bg-[#20E696] shadow-[0_0_10px_rgba(32,230,150,0.5)]" />
+                            <div style={{ width: `${longPercent}%` }} className="h-full bg-[#FF5722] shadow-[0_0_10px_rgba(32,230,150,0.5)]" />
                             <div style={{ width: `${shortPercent}%` }} className="h-full bg-[#FF4D4D]" />
                         </div>
                          <div className="flex justify-between mt-1 text-[8px] font-mono text-zinc-600 uppercase">
@@ -197,7 +197,7 @@ export const MarketAnalytics = () => {
                 
                 <div className="flex items-center justify-between">
                     <div className="text-center">
-                        <div className="text-2xl font-black text-[#20E696]">{loading ? '-' : winners}</div>
+                        <div className="text-2xl font-black text-[#FF5722]">{loading ? '-' : winners}</div>
                         <div className="text-[10px] text-zinc-500 uppercase">Winners</div>
                     </div>
                     
@@ -208,7 +208,7 @@ export const MarketAnalytics = () => {
                               {agentStats.slice(0, 10).map((a, i) => (
                                   <div 
                                       key={i} 
-                                      className={`w-2 h-8 rounded-sm ${a.pnl > 0 ? 'bg-[#20E696]' : 'bg-[#FF4D4D]'}`}
+                                      className={`w-2 h-8 rounded-sm ${a.pnl > 0 ? 'bg-[#FF5722]' : 'bg-[#FF4D4D]'}`}
                                   />
                               ))}
                           </div>
@@ -264,7 +264,7 @@ export const MarketAnalytics = () => {
                         {activeTab === 'risk-reward' && (
                             <>
                                 <div className="absolute top-4 left-4 z-10 text-[10px] text-zinc-500 font-mono border border-white/5 bg-black/50 p-2 rounded backdrop-blur">
-                                    <div className="flex items-center gap-2 mb-1"><span className="w-2 h-2 rounded-full bg-[#20E696]"></span> Alpha</div>
+                                    <div className="flex items-center gap-2 mb-1"><span className="w-2 h-2 rounded-full bg-[#FF5722]"></span> Alpha</div>
                                     <div className="flex items-center gap-2 mb-1"><span className="w-2 h-2 rounded-full bg-purple-500"></span> Degen</div>
                                     <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#FF4D4D]"></span> Rekt</div>
                                 </div>
@@ -297,10 +297,10 @@ export const MarketAnalytics = () => {
                                         <Scatter name="Agents" data={agentStats} fill="#8884d8">
                                             {agentStats.map((entry, index) => {
                                                 let fill = "#555"; 
-                                                if (entry.type === "Alpha") fill = "#20E696";
+                                                if (entry.type === "Alpha") fill = "#FF5722";
                                                 else if (entry.type === "Degen") fill = "#A855F7";
                                                 else if (entry.type === "Rekt") fill = "#FF4D4D";
-                                                else if (entry.pnl > 0) fill = "#20E69680";
+                                                else if (entry.pnl > 0) fill = "#FF572280";
                                                 
                                                 return <Cell key={`cell-${index}`} fill={fill} fillOpacity={0.8} strokeWidth={0} />;
                                             })}
@@ -314,10 +314,10 @@ export const MarketAnalytics = () => {
                             <div className="w-full h-full flex flex-col">
                                  <div className="flex justify-between items-center mb-2 px-2">
                                     <div className="text-[10px] text-zinc-500 font-mono">
-                                        Total PnL: <span className={totalPnL >= 0 ? 'text-[#20E696]' : 'text-[#FF4D4D]'}>${(totalPnL/1000).toFixed(1)}k</span>
+                                        Total PnL: <span className={totalPnL >= 0 ? 'text-[#FF5722]' : 'text-[#FF4D4D]'}>${(totalPnL/1000).toFixed(1)}k</span>
                                     </div>
                                     <div className="flex gap-3 text-[10px] font-mono">
-                                        <span className="text-[#20E696]">{winners} Winners</span>
+                                        <span className="text-[#FF5722]">{winners} Winners</span>
                                         <span className="text-[#FF4D4D]">{losers} Losers</span>
                                     </div>
                                  </div>
@@ -330,7 +330,7 @@ export const MarketAnalytics = () => {
                                                 {histogramData.map((entry, index) => (
                                                     <Cell 
                                                         key={`cell-${index}`} 
-                                                        fill={entry.mid > 0 ? '#20E696' : '#FF4D4D'} 
+                                                        fill={entry.mid > 0 ? '#FF5722' : '#FF4D4D'} 
                                                         fillOpacity={0.8}
                                                     />
                                                 ))}

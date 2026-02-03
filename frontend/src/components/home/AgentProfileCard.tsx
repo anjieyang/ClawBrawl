@@ -130,7 +130,7 @@ export default function AgentProfileCard({ agent }: AgentProfileCardProps) {
 
         {/* Power Level */}
         <div className="flex items-center justify-center gap-2 my-3 py-2 bg-slate-200/50 dark:bg-black/40 rounded-lg border border-slate-300/50 dark:border-white/5">
-          <Zap size={16} className="text-[#16a34a] dark:text-[#20E696]" />
+          <Zap size={16} className="text-[#EA4C1F] dark:text-[#FF5722]" />
           <span className="text-2xl font-black text-slate-900 dark:text-white">{powerLevel}</span>
           <span className="text-[10px] text-slate-500 dark:text-zinc-500 uppercase">Power</span>
         </div>
@@ -148,9 +148,9 @@ export default function AgentProfileCard({ agent }: AgentProfileCardProps) {
           
           {/* Defense (ROI) */}
           <div className="flex items-center gap-2 p-2.5 bg-slate-200/50 dark:bg-black/30 rounded-lg border border-slate-300/50 dark:border-white/5">
-            <Shield size={14} className={isPositivePnl ? 'text-[#16a34a] dark:text-[#20E696]' : 'text-[#dc2626] dark:text-[#FF4D4D]'} />
+            <Shield size={14} className={isPositivePnl ? 'text-[#EA4C1F] dark:text-[#FF5722]' : 'text-[#dc2626] dark:text-[#FF4D4D]'} />
             <div>
-              <div className={`text-sm font-bold ${isPositivePnl ? 'text-[#16a34a] dark:text-[#20E696]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}`}>
+              <div className={`text-sm font-bold ${isPositivePnl ? 'text-[#EA4C1F] dark:text-[#FF5722]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}`}>
                 {isPositivePnl ? '+' : ''}{agent.roi}%
               </div>
               <div className="text-[8px] text-slate-500 dark:text-zinc-500 uppercase">ROI</div>
@@ -191,7 +191,7 @@ export default function AgentProfileCard({ agent }: AgentProfileCardProps) {
               Last 80 Rounds
             </span>
             <div className="flex items-center gap-1.5 text-[9px]">
-              <span className="text-[#16a34a] dark:text-[#20E696] font-bold">{battleStats.wins}W</span>
+              <span className="text-[#EA4C1F] dark:text-[#FF5722] font-bold">{battleStats.wins}W</span>
               <span className="text-slate-400 dark:text-zinc-600">/</span>
               <span className="text-[#dc2626] dark:text-[#FF4D4D] font-bold">{battleStats.losses}L</span>
             </div>
@@ -205,7 +205,7 @@ export default function AgentProfileCard({ agent }: AgentProfileCardProps) {
                 content={
                   <div className="text-xs p-1">
                     <div className="font-semibold text-slate-900 dark:text-white">Round #{battle.round}</div>
-                    <div className={battle.result === 'win' ? 'text-[#16a34a] dark:text-[#20E696]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}>
+                    <div className={battle.result === 'win' ? 'text-[#EA4C1F] dark:text-[#FF5722]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}>
                       {battle.result === 'win' ? 'Victory' : 'Defeat'}
                     </div>
                   </div>
@@ -216,7 +216,7 @@ export default function AgentProfileCard({ agent }: AgentProfileCardProps) {
               >
                 <div 
                   className={`aspect-square rounded-[2px] cursor-pointer hover:scale-105 transition-transform ${
-                    battle.result === 'win' ? 'bg-[#16a34a] dark:bg-[#20E696]' : 'bg-[#dc2626] dark:bg-[#FF4D4D]'
+                    battle.result === 'win' ? 'bg-[#EA4C1F] dark:bg-[#FF5722]' : 'bg-[#dc2626] dark:bg-[#FF4D4D]'
                   }`}
                 />
               </Tooltip>
