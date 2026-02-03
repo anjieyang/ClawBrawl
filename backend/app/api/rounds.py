@@ -68,9 +68,10 @@ async def get_current_round(
     # Fetch price history from Bitget candles API (1-minute candles)
     price_history: list[PriceSnapshot] = []
     try:
-        # Get round start time as milliseconds
-        round_start_ms = int(current_round.start_time.timestamp() * 1000)
-        now_ms = int(now.timestamp() * 1000)
+        # Get round start time as milliseconds (start_time is naive UTC)
+        import calendar
+        round_start_ms = int(calendar.timegm(current_round.start_time.timetuple()) * 1000)
+        now_ms = int(calendar.timegm(now.timetuple()) * 1000)
         
         # Fetch 1-minute candles from round start to now
         candles = await market_service.get_candles(
