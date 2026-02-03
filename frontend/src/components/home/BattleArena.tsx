@@ -238,8 +238,8 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
           onClick={() => setIsSearchOpen(true)}
           className="flex flex-col gap-1 group text-left"
         >
-          <h1 className="text-3xl font-bold text-white tracking-tight group-hover:text-zinc-200 transition-colors flex items-center gap-2 cursor-pointer">
-            {selectedSymbol} <span className="text-zinc-500 font-normal group-hover:text-zinc-400 transition-colors">Perpetual ↓</span>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight group-hover:text-slate-700 dark:group-hover:text-zinc-200 transition-colors flex items-center gap-2 cursor-pointer">
+            {selectedSymbol} <span className="text-slate-500 dark:text-zinc-500 font-normal group-hover:text-slate-400 dark:group-hover:text-zinc-400 transition-colors">Perpetual ↓</span>
           </h1>
         </button>
         
@@ -248,29 +248,29 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
           {agentsWithReasons > 0 && (
             <button
               onClick={() => setIsAnalysisPanelOpen(true)}
-              className="flex items-center gap-2 text-sm bg-gradient-to-r from-purple-500/20 to-blue-500/20 hover:from-purple-500/30 hover:to-blue-500/30 border border-purple-500/30 rounded-full px-4 py-2 backdrop-blur-md transition-all group"
+              className="flex items-center gap-2 text-sm bg-purple-100 dark:bg-purple-500/20 hover:bg-purple-200 dark:hover:bg-purple-500/30 border border-purple-200 dark:border-purple-500/30 rounded-full px-4 py-2 backdrop-blur-md transition-all group"
             >
-              <MessageSquareText size={14} className="text-purple-400 group-hover:text-purple-300" />
-              <span className="text-purple-300 group-hover:text-purple-200 font-medium">
+              <MessageSquareText size={14} className="text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-300" />
+              <span className="text-purple-700 dark:text-purple-300 group-hover:text-purple-900 dark:group-hover:text-purple-200 font-medium">
                 {agentsWithReasons} Analysis
               </span>
             </button>
           )}
           
-          <div className="flex items-center gap-6 text-sm text-zinc-400 bg-white/5 border border-white/5 rounded-full px-6 py-2 backdrop-blur-md">
+          <div className="flex items-center gap-6 text-sm text-slate-500 dark:text-zinc-400 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-full px-6 py-2 backdrop-blur-md">
             <div className="flex items-center gap-2">
-              <span className="text-zinc-500 font-mono text-xs">Round</span>
-              <span className="text-white font-mono font-bold">#{round.id}</span>
+              <span className="text-slate-400 dark:text-zinc-500 font-mono text-xs">Round</span>
+              <span className="text-slate-900 dark:text-white font-mono font-bold">#{round.id}</span>
             </div>
-            <div className="w-px h-3 bg-white/10" />
+            <div className="w-px h-3 bg-slate-300 dark:bg-white/10" />
             <div className="flex items-center gap-2">
-              <Target size={14} className="text-zinc-500" />
-              <span className="text-white font-medium">{totalBots}</span> <span className="hidden sm:inline">Agents</span>
+              <Target size={14} className="text-slate-400 dark:text-zinc-500" />
+              <span className="text-slate-900 dark:text-white font-medium">{totalBots}</span> <span className="hidden sm:inline">Agents</span>
             </div>
-            <div className="w-px h-3 bg-white/10" />
+            <div className="w-px h-3 bg-slate-300 dark:bg-white/10" />
             <div className="flex items-center gap-2">
-              <Clock size={14} className={isWaitingForNewRound ? "text-yellow-500 animate-pulse" : "text-zinc-500"} />
-              <span className={`font-mono font-medium ${isWaitingForNewRound ? "text-yellow-500 animate-pulse" : "text-white"}`}>
+              <Clock size={14} className={isWaitingForNewRound ? "text-yellow-500 animate-pulse" : "text-slate-400 dark:text-zinc-500"} />
+              <span className={`font-mono font-medium ${isWaitingForNewRound ? "text-yellow-600 dark:text-yellow-500 animate-pulse" : "text-slate-900 dark:text-white"}`}>
                 {isWaitingForNewRound ? "Settling..." : formatTime(timeLeft)}
               </span>
             </div>
@@ -282,48 +282,48 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
       <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-6 min-h-0">
         
         {/* LEFT CARD: LONG POSITIONS */}
-        <div className="md:col-span-3 fintech-card rounded-3xl p-6 flex flex-col h-full relative overflow-hidden group">
-          <div className="flex justify-between items-start mb-6 z-10">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <div className="p-1.5 rounded-md bg-[#20E696]/10 text-[#20E696]">
-                  <ArrowUp size={16} strokeWidth={3} />
+          <div className="md:col-span-3 fintech-card rounded-3xl p-6 flex flex-col h-full relative overflow-hidden group bg-white/60 dark:bg-black/20">
+            <div className="flex justify-between items-start mb-6 z-10">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="p-1.5 rounded-md bg-[#16a34a]/10 dark:bg-[#20E696]/10 text-[#16a34a] dark:text-[#20E696]">
+                    <ArrowUp size={16} strokeWidth={3} />
+                  </div>
+                  <span className="text-[#16a34a] dark:text-[#20E696] font-bold tracking-wide">LONG</span>
                 </div>
-                <span className="text-[#20E696] font-bold tracking-wide">LONG</span>
+                <p className="text-slate-500 dark:text-zinc-500 text-xs">Bullish Faction</p>
               </div>
-              <p className="text-zinc-500 text-xs">Bullish Faction</p>
+              <div className="text-right">
+                 <span className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{longPercentage}%</span>
+                 <div className="h-1 w-12 bg-[#16a34a]/30 dark:bg-[#20E696]/30 rounded-full ml-auto mt-1 overflow-hidden">
+                   <div className="h-full bg-[#16a34a] dark:bg-[#20E696]" style={{width: `${longPercentage}%`}} />
+                 </div>
+              </div>
             </div>
-            <div className="text-right">
-               <span className="text-3xl font-bold text-white tracking-tight">{longPercentage}%</span>
-               <div className="h-1 w-12 bg-[#20E696]/30 rounded-full ml-auto mt-1 overflow-hidden">
-                 <div className="h-full bg-[#20E696]" style={{width: `${longPercentage}%`}} />
-               </div>
-            </div>
-          </div>
 
-          <div className="flex-1 overflow-y-auto space-y-2 pr-2 scrollbar-hide z-10">
-            <AnimatePresence>
-              {bets.long.map((bot, i) => {
-                const { winRate, streak } = bot;
-                const isStreak = (streak || 0) >= 3;
-                return (
-                  <motion.div 
-                    key={bot.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group/item"
-                  >
-                    <div className="flex items-center gap-3 mb-2">
-                      <Avatar src={bot.avatar} size="sm" className={`opacity-80 group-hover/item:opacity-100 transition-opacity ${isStreak ? 'ring-2 ring-[#FFD700]/50' : ''}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-zinc-200 truncate">{bot.name}</p>
-                        <div className="flex items-center gap-2">
-                           <span className="text-[10px] text-zinc-500 font-mono bg-white/5 px-1.5 rounded">Rank #{i + 1}</span>
-                           <span className={`text-[10px] font-mono ${(winRate || 0) > 60 ? 'text-[#20E696]' : 'text-zinc-500'}`}>{winRate}% WR</span>
+            <div className="flex-1 overflow-y-auto space-y-2 pr-2 scrollbar-hide z-10">
+              <AnimatePresence>
+                {bets.long.map((bot, i) => {
+                  const { winRate, streak } = bot;
+                  const isStreak = (streak || 0) >= 3;
+                  return (
+                    <motion.div 
+                      key={bot.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="p-3 rounded-xl bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 hover:bg-slate-200/50 dark:hover:bg-white/10 transition-colors group/item"
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <Avatar src={bot.avatar} size="sm" className={`opacity-80 group-hover/item:opacity-100 transition-opacity ${isStreak ? 'ring-2 ring-[#FFD700]/50' : ''}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-slate-700 dark:text-zinc-200 truncate">{bot.name}</p>
+                          <div className="flex items-center gap-2">
+                             <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono bg-slate-200/50 dark:bg-white/5 px-1.5 rounded">Rank #{i + 1}</span>
+                             <span className={`text-[10px] font-mono ${(winRate || 0) > 60 ? 'text-[#16a34a] dark:text-[#20E696]' : 'text-slate-400 dark:text-zinc-500'}`}>{winRate}% WR</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
                     {/* Agent's Reasoning */}
                     {bot.reason && (
                       <Tooltip 

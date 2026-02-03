@@ -3,6 +3,31 @@
 @tailwind utilities;
 
 :root {
+  --background: #f1f5f9; /* Slate 100 - Cool Gray */
+  --foreground: #0f172a; /* Slate 900 */
+  
+  --brand-cyan: #0891b2; 
+  --brand-dark: #f8fafc;
+  
+  --trade-up: #16a34a; /* Green 600 */
+  --trade-down: #dc2626; /* Red 600 */
+  
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --card-border: rgba(148, 163, 184, 0.2); /* Slate 400 with opacity */
+  --card-hover-bg: rgba(255, 255, 255, 0.95);
+  
+  --nav-bg: rgba(255, 255, 255, 0.9);
+  --nav-border: rgba(0, 0, 0, 0.05);
+  
+  --text-muted: #64748b; /* Slate 500 */
+  --text-subtle: #94a3b8; /* Slate 400 */
+  
+  --bg-subtle: rgba(0, 0, 0, 0.03);
+  --bg-surface: #ffffff;
+}
+
+/* Dark mode */
+.dark {
   --background: #030303;
   --foreground: #ffffff;
   
@@ -11,49 +36,90 @@
   
   --trade-up: #20E696;
   --trade-down: #FF4D4D;
+  
+  --card-bg: rgba(255, 255, 255, 0.03);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-hover-bg: rgba(255, 255, 255, 0.06);
+  
+  --nav-bg: rgba(10, 10, 10, 0.7);
+  --nav-border: rgba(255, 255, 255, 0.05);
+  
+  --text-muted: #a1a1aa;
+  --text-subtle: #52525b;
+  
+  --bg-subtle: rgba(255, 255, 255, 0.05);
+  --bg-surface: #18181b;
 }
 
 html, body {
-  background: transparent;
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   overflow-x: hidden;
   min-height: 100%;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Premium FinTech Card (Crystal Clear Glass) */
 .fintech-card {
-  /* Much lighter background for transparency */
-  background: rgba(255, 255, 255, 0.03); 
-  
-  /* Stronger blur for "frosted" look without opacity */
+  background: var(--card-bg); 
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  
-  /* Sharper, lighter border */
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  
-  /* Inner light reflection for depth */
+  border: 1px solid var(--card-border);
   box-shadow: 
-    0 4px 30px rgba(0, 0, 0, 0.1),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-    
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -1px rgba(0, 0, 0, 0.03);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.dark .fintech-card {
+  box-shadow: 
+    0 4px 30px rgba(0, 0, 0, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+:root .fintech-card {
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.05),
+    0 4px 6px -2px rgba(0, 0, 0, 0.025),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
 .fintech-card:hover {
-  /* Slightly brighter on hover but keeping transparency */
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--card-hover-bg);
+  border-color: var(--card-border);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  box-shadow: 
-    0 20px 40px -10px rgba(0, 0, 0, 0.5),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
   transform: translateY(-2px);
 }
 
+.dark .fintech-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 
+    0 20px 40px -10px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+:root .fintech-card:hover {
+  border-color: rgba(148, 163, 184, 0.3);
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.05), 
+    0 10px 10px -5px rgba(0, 0, 0, 0.01);
+}
+
 .text-gradient {
+  background: linear-gradient(to bottom right, #ffffff, #a1a1aa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+:root .text-gradient {
+  background: linear-gradient(to bottom right, #0f172a, #475569);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dark .text-gradient {
   background: linear-gradient(to bottom right, #ffffff, #a1a1aa);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

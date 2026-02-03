@@ -1,14 +1,28 @@
 'use client';
 
 import { motion } from "framer-motion";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 export const FluidBackground = () => {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDark = mounted ? resolvedTheme === 'dark' : true;
+
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      {/* Base Black */}
-      <div className="absolute inset-0 bg-[#030303]" />
+      {/* Base Background */}
+      <div 
+        className="absolute inset-0 transition-colors duration-500"
+        style={{ background: isDark ? '#030303' : '#f8fafc' }}
+      />
 
-      {/* Orb 1: Cyan - Top Left - REDUCED OPACITY */}
+      {/* Orb 1: Cyan - Top Left */}
       <motion.div
         animate={{
           x: [0, 80, -50, 0],
@@ -20,19 +34,20 @@ export const FluidBackground = () => {
           repeat: Infinity,
           ease: "easeInOut",
         }}
-        className="absolute rounded-full"
+        className="absolute rounded-full transition-all duration-500"
         style={{
           width: '70vw',
           height: '70vw',
           top: '-30%',
           left: '-20%',
-          // Opacity reduced from 0.3 to 0.15
-          background: 'radial-gradient(circle, rgba(0, 220, 255, 0.15) 0%, rgba(0, 220, 255, 0) 70%)',
+          background: isDark 
+            ? 'radial-gradient(circle, rgba(0, 220, 255, 0.15) 0%, rgba(0, 220, 255, 0) 70%)'
+            : 'radial-gradient(circle, rgba(14, 165, 233, 0.15) 0%, rgba(14, 165, 233, 0) 70%)',
           filter: 'blur(80px)',
         }}
       />
 
-      {/* Orb 2: Purple/Indigo - Bottom Right - REDUCED OPACITY */}
+      {/* Orb 2: Purple/Indigo - Bottom Right */}
       <motion.div
         animate={{
           x: [0, -60, 40, 0],
@@ -44,19 +59,20 @@ export const FluidBackground = () => {
           repeat: Infinity,
           ease: "easeInOut",
         }}
-        className="absolute rounded-full"
+        className="absolute rounded-full transition-all duration-500"
         style={{
           width: '60vw',
           height: '60vw',
           bottom: '-20%',
           right: '-15%',
-          // Opacity reduced from 0.25 to 0.12
-          background: 'radial-gradient(circle, rgba(130, 80, 255, 0.12) 0%, rgba(130, 80, 255, 0) 70%)',
+          background: isDark
+            ? 'radial-gradient(circle, rgba(130, 80, 255, 0.12) 0%, rgba(130, 80, 255, 0) 70%)'
+            : 'radial-gradient(circle, rgba(147, 51, 234, 0.12) 0%, rgba(147, 51, 234, 0) 70%)',
           filter: 'blur(90px)',
         }}
       />
 
-      {/* Orb 3: Green/Teal - Center Left - REDUCED OPACITY */}
+      {/* Orb 3: Green/Teal - Center Left */}
       <motion.div
         animate={{
           x: [0, 100, -60, 0],
@@ -68,31 +84,38 @@ export const FluidBackground = () => {
           repeat: Infinity,
           ease: "easeInOut",
         }}
-        className="absolute rounded-full"
+        className="absolute rounded-full transition-all duration-500"
         style={{
           width: '50vw',
           height: '50vw',
           bottom: '0%',
           left: '10%',
-          // Opacity reduced from 0.2 to 0.1
-          background: 'radial-gradient(circle, rgba(32, 230, 150, 0.1) 0%, rgba(32, 230, 150, 0) 70%)',
+          background: isDark
+            ? 'radial-gradient(circle, rgba(32, 230, 150, 0.1) 0%, rgba(32, 230, 150, 0) 70%)'
+            : 'radial-gradient(circle, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0) 70%)',
           filter: 'blur(100px)',
         }}
       />
 
-      {/* Noise Texture - Slightly stronger to diffuse light better */}
-      <svg className="absolute inset-0 w-full h-full opacity-[0.04]" xmlns="http://www.w3.org/2000/svg">
+      {/* Noise Texture */}
+      <svg 
+        className="absolute inset-0 w-full h-full transition-opacity duration-500" 
+        style={{ opacity: isDark ? 0.04 : 0.02 }}
+        xmlns="http://www.w3.org/2000/svg"
+      >
         <filter id="noise">
           <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="4" stitchTiles="stitch" />
         </filter>
         <rect width="100%" height="100%" filter="url(#noise)" />
       </svg>
 
-      {/* Vignette - Stronger to focus attention */}
+      {/* Vignette */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 transition-all duration-500"
         style={{
-          background: 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 20%, rgba(0,0,0,0.6) 100%)',
+          background: isDark
+            ? 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 20%, rgba(0,0,0,0.6) 100%)'
+            : 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 30%, rgba(0,0,0,0.08) 100%)',
         }}
       />
     </div>

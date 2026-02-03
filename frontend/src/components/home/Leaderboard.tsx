@@ -30,10 +30,10 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
         return (
           <div className="pl-4">
             <span className={`font-mono text-lg font-bold ${
-              user.rank === 1 ? 'text-[#FFD700]' : 
-              user.rank === 2 ? 'text-[#C0C0C0]' : 
-              user.rank === 3 ? 'text-[#CD7F32]' : 
-              'text-zinc-600'
+              user.rank === 1 ? 'text-[#eab308] dark:text-[#FFD700]' : 
+              user.rank === 2 ? 'text-slate-400 dark:text-[#C0C0C0]' : 
+              user.rank === 3 ? 'text-amber-700 dark:text-[#CD7F32]' : 
+              'text-slate-500 dark:text-zinc-600'
             }`}>
               {String(user.rank).padStart(2, '0')}
             </span>
@@ -46,23 +46,23 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
                 <Avatar 
                 src={user.avatar} 
                 size="md"
-                className={user.rank <= 3 ? 'ring-2 ring-white/20' : ''}
+                className={user.rank <= 3 ? 'ring-2 ring-white/20 dark:ring-white/20 ring-slate-200' : ''}
                 />
                 {user.rank === 1 && (
-                    <div className="absolute -top-2 -right-2 bg-[#FFD700] text-black text-[10px] px-1.5 rounded-full font-bold border border-black/10">
+                    <div className="absolute -top-2 -right-2 bg-[#eab308] dark:bg-[#FFD700] text-black text-[10px] px-1.5 rounded-full font-bold border border-black/10">
                         KING
                     </div>
                 )}
             </div>
             <div>
                <div className="flex items-center gap-2">
-                   <p className="font-bold text-white text-base">{user.name}</p>
+                   <p className="font-bold text-slate-900 dark:text-white text-base">{user.name}</p>
                    {user.tags && user.tags.map((tag: string, i: number) => (
                        <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded border ${
-                           tag === 'Whale' ? 'border-purple-500/30 text-purple-400 bg-purple-500/10' :
-                           tag === 'Degen' ? 'border-pink-500/30 text-pink-400 bg-pink-500/10' :
-                           tag === 'Rekt' ? 'border-red-500/30 text-red-400 bg-red-500/10' :
-                           'border-zinc-700 text-zinc-500 bg-zinc-800'
+                           tag === 'Whale' ? 'border-purple-500/30 text-purple-600 dark:text-purple-400 bg-purple-500/10' :
+                           tag === 'Degen' ? 'border-pink-500/30 text-pink-600 dark:text-pink-400 bg-pink-500/10' :
+                           tag === 'Rekt' ? 'border-red-500/30 text-red-600 dark:text-red-400 bg-red-500/10' :
+                           'border-slate-300 dark:border-zinc-700 text-slate-500 dark:text-zinc-500 bg-slate-100 dark:bg-zinc-800'
                        }`}>
                            {tag}
                        </span>
@@ -83,7 +83,7 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
       case "pnl":
         const isPositive = user.pnl >= 0;
         return (
-          <div className={`font-mono font-bold text-base ${isPositive ? 'text-[#20E696]' : 'text-[#FF4D4D]'}`}>
+          <div className={`font-mono font-bold text-base ${isPositive ? 'text-[#16a34a] dark:text-[#20E696]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}`}>
             {isPositive ? '+' : ''}${Math.abs(user.pnl).toLocaleString()}
           </div>
         );
@@ -91,15 +91,15 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
         const isRoiPositive = user.roi >= 0;
         return (
           <div className="flex flex-col">
-              <span className={`font-mono font-bold ${isRoiPositive ? 'text-[#20E696]' : 'text-[#FF4D4D]'}`}>
+              <span className={`font-mono font-bold ${isRoiPositive ? 'text-[#16a34a] dark:text-[#20E696]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}`}>
                 {isRoiPositive ? '+' : ''}{user.roi.toLocaleString()}%
               </span>
-              <span className="text-[10px] text-zinc-600 font-mono">MaxDD: {user.drawdown}%</span>
+              <span className="text-[10px] text-slate-400 dark:text-zinc-600 font-mono">MaxDD: {user.drawdown}%</span>
           </div>
         );
       case "pf":
         return (
-          <div className="font-mono font-medium text-zinc-300">
+          <div className="font-mono font-medium text-slate-700 dark:text-zinc-300">
             {user.profit_factor}
           </div>
         );
@@ -108,17 +108,17 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
         return (
           <div className="flex items-center gap-2">
             {streak > 0 ? (
-                <div className="flex items-center gap-1 text-[#20E696] font-mono font-bold bg-[#20E696]/10 px-2 py-1 rounded-full border border-[#20E696]/20">
+                <div className="flex items-center gap-1 text-[#16a34a] dark:text-[#20E696] font-mono font-bold bg-[#16a34a]/10 dark:bg-[#20E696]/10 px-2 py-1 rounded-full border border-[#16a34a]/20 dark:border-[#20E696]/20">
                     <Flame size={14} className="fill-current" />
                     {streak}
                 </div>
             ) : streak < 0 ? (
-                <div className="flex items-center gap-1 text-[#FF4D4D] font-mono font-bold bg-[#FF4D4D]/10 px-2 py-1 rounded-full border border-[#FF4D4D]/20">
+                <div className="flex items-center gap-1 text-[#dc2626] dark:text-[#FF4D4D] font-mono font-bold bg-[#dc2626]/10 dark:bg-[#FF4D4D]/10 px-2 py-1 rounded-full border border-[#dc2626]/20 dark:border-[#FF4D4D]/20">
                     <Snowflake size={14} className="fill-current" />
                     {Math.abs(streak)}
                 </div>
             ) : (
-                <span className="text-zinc-600 font-mono">-</span>
+                <span className="text-slate-400 dark:text-zinc-600 font-mono">-</span>
             )}
           </div>
         );
@@ -134,17 +134,17 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
   };
 
   return (
-    <div className="fintech-card rounded-2xl overflow-hidden border border-white/5 bg-black/20 backdrop-blur-sm relative h-[500px] flex flex-col">
+    <div className="fintech-card rounded-2xl overflow-hidden border border-slate-200 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-sm relative h-[500px] flex flex-col">
       <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
         <Table 
           aria-label="Leaderboard table" 
           removeWrapper
           classNames={{
             base: "bg-transparent min-w-[800px]",
-            th: "bg-white/5 text-zinc-400 text-[11px] font-bold uppercase tracking-wider py-5 border-b border-white/5 sticky top-0 z-10",
-            td: "py-4 border-b border-white/5 last:border-0 transition-colors cursor-pointer",
-            tbody: "divide-y divide-white/5",
-            tr: "data-[selected=true]:bg-transparent"
+            th: "bg-slate-100/50 dark:bg-white/5 text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider py-5 border-b border-slate-200 dark:border-white/5 sticky top-0 z-10",
+            td: "py-4 border-b border-slate-200/50 dark:border-white/5 last:border-0 transition-colors cursor-pointer text-slate-900 dark:text-white",
+            tbody: "divide-y divide-slate-100 dark:divide-white/5",
+            tr: "data-[selected=true]:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5"
           }}
         >
           <TableHeader columns={columns}>
@@ -160,10 +160,10 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
               return (
                 <TableRow 
                   key={item.id} 
-                  className="cursor-pointer transition-colors hover:bg-white/5"
+                  className="cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-white/5"
                   style={isSelected ? {
                     backgroundColor: 'rgba(32, 230, 150, 0.1)',
-                    borderLeft: '3px solid #20E696',
+                    borderLeft: '3px solid #16a34a',
                   } : undefined}
                   onClick={() => handleRowClick(item)}
                 >

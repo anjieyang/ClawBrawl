@@ -29,10 +29,10 @@ function generateBattleHistory(agent: any) {
 
 // Get rarity based on rank
 function getRarity(rank: number): { name: string; color: string; glow: string; border: string } {
-  if (rank === 1) return { name: 'LEGENDARY', color: 'text-[#FFD700]', glow: 'shadow-[0_0_30px_rgba(255,215,0,0.4)]', border: 'border-[#FFD700]/50' };
-  if (rank === 2) return { name: 'EPIC', color: 'text-[#C0C0C0]', glow: 'shadow-[0_0_25px_rgba(192,192,192,0.3)]', border: 'border-[#C0C0C0]/40' };
-  if (rank === 3) return { name: 'RARE', color: 'text-[#CD7F32]', glow: 'shadow-[0_0_20px_rgba(205,127,50,0.3)]', border: 'border-[#CD7F32]/30' };
-  return { name: 'COMMON', color: 'text-purple-400', glow: 'shadow-[0_0_15px_rgba(168,85,247,0.2)]', border: 'border-purple-500/30' };
+  if (rank === 1) return { name: 'LEGENDARY', color: 'text-[#eab308] dark:text-[#FFD700]', glow: 'shadow-[0_0_30px_rgba(234,179,8,0.3)] dark:shadow-[0_0_30px_rgba(255,215,0,0.4)]', border: 'border-[#eab308]/50 dark:border-[#FFD700]/50' };
+  if (rank === 2) return { name: 'EPIC', color: 'text-slate-400 dark:text-[#C0C0C0]', glow: 'shadow-[0_0_25px_rgba(148,163,184,0.3)] dark:shadow-[0_0_25px_rgba(192,192,192,0.3)]', border: 'border-slate-400/40 dark:border-[#C0C0C0]/40' };
+  if (rank === 3) return { name: 'RARE', color: 'text-amber-700 dark:text-[#CD7F32]', glow: 'shadow-[0_0_20px_rgba(180,83,9,0.2)] dark:shadow-[0_0_20px_rgba(205,127,50,0.3)]', border: 'border-amber-700/30 dark:border-[#CD7F32]/30' };
+  return { name: 'COMMON', color: 'text-purple-500 dark:text-purple-400', glow: 'shadow-[0_0_15px_rgba(168,85,247,0.2)]', border: 'border-purple-500/30' };
 }
 
 export default function AgentProfileCard({ agent }: AgentProfileCardProps) {
@@ -43,7 +43,7 @@ export default function AgentProfileCard({ agent }: AgentProfileCardProps) {
 
   if (!agent) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-zinc-500 rounded-2xl border-2 border-zinc-800 bg-gradient-to-b from-zinc-900 via-black to-black">
+      <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-zinc-500 rounded-2xl border-2 border-slate-200 dark:border-zinc-800 bg-white dark:bg-gradient-to-b dark:from-zinc-900 dark:via-black dark:to-black">
         <Trophy size={48} className="mb-4 opacity-20" />
         <p className="text-sm">Select an agent to view profile</p>
       </div>
@@ -65,8 +65,8 @@ export default function AgentProfileCard({ agent }: AgentProfileCardProps) {
   return (
     <div className={`h-full flex flex-col relative overflow-hidden rounded-2xl ${rarity.border} border-2 ${rarity.glow}`}>
       {/* Background gradient based on rarity */}
-      <div className="absolute inset-0 bg-gradient-to-b from-zinc-900 via-black to-black" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-zinc-900 dark:via-black dark:to-black" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-black/5 via-transparent to-transparent dark:from-white/5 dark:via-transparent dark:to-transparent" />
       
       {/* Content */}
       <div className="relative flex flex-col h-full p-4">
@@ -109,91 +109,91 @@ export default function AgentProfileCard({ agent }: AgentProfileCardProps) {
           </div>
           
           {/* Name & Tags */}
-          <h2 className="text-lg font-black text-white tracking-tight">{agent.name}</h2>
+          <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{agent.name}</h2>
           <div className="flex items-center gap-2 mt-0.5">
             {agent.tags?.slice(0, 2).map((tag: string) => (
               <span 
                 key={tag} 
                 className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                  tag === 'Whale' ? 'bg-purple-500/20 text-purple-300' :
-                  tag === 'Degen' ? 'bg-pink-500/20 text-pink-300' :
-                  tag === 'Rekt' ? 'bg-red-500/20 text-red-300' :
-                  'bg-zinc-800 text-zinc-400'
+                  tag === 'Whale' ? 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300' :
+                  tag === 'Degen' ? 'bg-pink-500/10 dark:bg-pink-500/20 text-pink-600 dark:text-pink-300' :
+                  tag === 'Rekt' ? 'bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-300' :
+                  'bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400'
                 }`}
               >
                 {tag}
               </span>
             ))}
           </div>
-          <p className="text-[9px] text-zinc-500 font-mono">{agent.strategy}</p>
+          <p className="text-[9px] text-slate-500 dark:text-zinc-500 font-mono">{agent.strategy}</p>
         </div>
 
         {/* Power Level */}
-        <div className="flex items-center justify-center gap-2 my-3 py-2 bg-black/40 rounded-lg border border-white/5">
-          <Zap size={16} className="text-[#20E696]" />
-          <span className="text-2xl font-black text-white">{powerLevel}</span>
-          <span className="text-[10px] text-zinc-500 uppercase">Power</span>
+        <div className="flex items-center justify-center gap-2 my-3 py-2 bg-slate-200/50 dark:bg-black/40 rounded-lg border border-slate-300/50 dark:border-white/5">
+          <Zap size={16} className="text-[#16a34a] dark:text-[#20E696]" />
+          <span className="text-2xl font-black text-slate-900 dark:text-white">{powerLevel}</span>
+          <span className="text-[10px] text-slate-500 dark:text-zinc-500 uppercase">Power</span>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-2">
           {/* Attack (Win Rate) */}
-          <div className="flex items-center gap-2 p-2.5 bg-black/30 rounded-lg border border-white/5">
-            <Swords size={14} className="text-[#FF4D4D]" />
+          <div className="flex items-center gap-2 p-2.5 bg-slate-200/50 dark:bg-black/30 rounded-lg border border-slate-300/50 dark:border-white/5">
+            <Swords size={14} className="text-[#dc2626] dark:text-[#FF4D4D]" />
             <div>
-              <div className="text-sm font-bold text-white">{agent.win_rate}</div>
-              <div className="text-[8px] text-zinc-500 uppercase">Win Rate</div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white">{agent.win_rate}</div>
+              <div className="text-[8px] text-slate-500 dark:text-zinc-500 uppercase">Win Rate</div>
             </div>
           </div>
           
           {/* Defense (ROI) */}
-          <div className="flex items-center gap-2 p-2.5 bg-black/30 rounded-lg border border-white/5">
-            <Shield size={14} className={isPositivePnl ? 'text-[#20E696]' : 'text-[#FF4D4D]'} />
+          <div className="flex items-center gap-2 p-2.5 bg-slate-200/50 dark:bg-black/30 rounded-lg border border-slate-300/50 dark:border-white/5">
+            <Shield size={14} className={isPositivePnl ? 'text-[#16a34a] dark:text-[#20E696]' : 'text-[#dc2626] dark:text-[#FF4D4D]'} />
             <div>
-              <div className={`text-sm font-bold ${isPositivePnl ? 'text-[#20E696]' : 'text-[#FF4D4D]'}`}>
+              <div className={`text-sm font-bold ${isPositivePnl ? 'text-[#16a34a] dark:text-[#20E696]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}`}>
                 {isPositivePnl ? '+' : ''}{agent.roi}%
               </div>
-              <div className="text-[8px] text-zinc-500 uppercase">ROI</div>
+              <div className="text-[8px] text-slate-500 dark:text-zinc-500 uppercase">ROI</div>
             </div>
           </div>
           
           {/* Rounds */}
-          <div className="flex items-center gap-2 p-2.5 bg-black/30 rounded-lg border border-white/5">
-            <Target size={14} className="text-blue-400" />
+          <div className="flex items-center gap-2 p-2.5 bg-slate-200/50 dark:bg-black/30 rounded-lg border border-slate-300/50 dark:border-white/5">
+            <Target size={14} className="text-blue-500 dark:text-blue-400" />
             <div>
-              <div className="text-sm font-bold text-white">{agent.wins + agent.losses}</div>
-              <div className="text-[8px] text-zinc-500 uppercase">Battles</div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white">{agent.wins + agent.losses}</div>
+              <div className="text-[8px] text-slate-500 dark:text-zinc-500 uppercase">Battles</div>
             </div>
           </div>
           
           {/* Streak */}
-          <div className="flex items-center gap-2 p-2.5 bg-black/30 rounded-lg border border-white/5">
+          <div className="flex items-center gap-2 p-2.5 bg-slate-200/50 dark:bg-black/30 rounded-lg border border-slate-300/50 dark:border-white/5">
             {streak >= 0 ? (
-              <Flame size={14} className={streak > 0 ? 'text-orange-400' : 'text-zinc-600'} />
+              <Flame size={14} className={streak > 0 ? 'text-orange-500 dark:text-orange-400' : 'text-slate-400 dark:text-zinc-600'} />
             ) : (
-              <Snowflake size={14} className="text-cyan-400" />
+              <Snowflake size={14} className="text-cyan-500 dark:text-cyan-400" />
             )}
             <div>
               <div className={`text-sm font-bold ${
-                streak > 0 ? 'text-orange-400' : streak < 0 ? 'text-cyan-400' : 'text-zinc-500'
+                streak > 0 ? 'text-orange-500 dark:text-orange-400' : streak < 0 ? 'text-cyan-500 dark:text-cyan-400' : 'text-slate-500 dark:text-zinc-500'
               }`}>
                 {streak === 0 ? '-' : Math.abs(streak)}
               </div>
-              <div className="text-[8px] text-zinc-500 uppercase">Streak</div>
+              <div className="text-[8px] text-slate-500 dark:text-zinc-500 uppercase">Streak</div>
             </div>
           </div>
         </div>
 
         {/* Battle History - 4 rows x 20 cols, per round */}
-        <div className="bg-black/30 rounded-lg p-3 border border-white/5 mt-3 flex-1 flex flex-col">
+        <div className="bg-slate-200/50 dark:bg-black/30 rounded-lg p-3 border border-slate-300/50 dark:border-white/5 mt-3 flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">
+            <span className="text-[9px] text-slate-500 dark:text-zinc-500 uppercase tracking-wider font-bold">
               Last 80 Rounds
             </span>
             <div className="flex items-center gap-1.5 text-[9px]">
-              <span className="text-[#20E696] font-bold">{battleStats.wins}W</span>
-              <span className="text-zinc-600">/</span>
-              <span className="text-[#FF4D4D] font-bold">{battleStats.losses}L</span>
+              <span className="text-[#16a34a] dark:text-[#20E696] font-bold">{battleStats.wins}W</span>
+              <span className="text-slate-400 dark:text-zinc-600">/</span>
+              <span className="text-[#dc2626] dark:text-[#FF4D4D] font-bold">{battleStats.losses}L</span>
             </div>
           </div>
 
@@ -204,19 +204,19 @@ export default function AgentProfileCard({ agent }: AgentProfileCardProps) {
                 key={index}
                 content={
                   <div className="text-xs p-1">
-                    <div className="font-semibold">Round #{battle.round}</div>
-                    <div className={battle.result === 'win' ? 'text-[#20E696]' : 'text-[#FF4D4D]'}>
+                    <div className="font-semibold text-slate-900 dark:text-white">Round #{battle.round}</div>
+                    <div className={battle.result === 'win' ? 'text-[#16a34a] dark:text-[#20E696]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}>
                       {battle.result === 'win' ? 'Victory' : 'Defeat'}
                     </div>
                   </div>
                 }
                 classNames={{
-                  base: "bg-zinc-900 border border-white/10",
+                  base: "bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 shadow-lg",
                 }}
               >
                 <div 
                   className={`aspect-square rounded-[2px] cursor-pointer hover:scale-105 transition-transform ${
-                    battle.result === 'win' ? 'bg-[#20E696]' : 'bg-[#FF4D4D]'
+                    battle.result === 'win' ? 'bg-[#16a34a] dark:bg-[#20E696]' : 'bg-[#dc2626] dark:bg-[#FF4D4D]'
                   }`}
                 />
               </Tooltip>

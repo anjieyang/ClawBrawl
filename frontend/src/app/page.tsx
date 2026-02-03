@@ -54,14 +54,14 @@ export default function Home() {
     <>
       {/* Dynamic Fluid Background */}
       <FluidBackground />
+
+      {/* Floating Header - hide on hero section */}
+      <div className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${activeSection === 'hero' ? 'opacity-0 -translate-y-full pointer-events-none' : 'opacity-100 translate-y-0 pointer-events-auto'}`}>
+        <Header navigationContext={navigationContext} />
+      </div>
       
       {/* Main App Content */}
       <main className="h-screen w-full text-foreground relative z-10">
-        {/* Floating Header - hide on hero section */}
-        <div className={`transition-all duration-500 ${activeSection === 'hero' ? 'opacity-0 -translate-y-full pointer-events-none' : 'opacity-100 translate-y-0'}`}>
-          <Header navigationContext={navigationContext} />
-        </div>
-
         {/* Snap Scroll Container */}
         <div 
           ref={containerRef}
