@@ -30,7 +30,7 @@ export default function ConnectBotModal({ isOpen, onOpenChange }: ConnectBotModa
           <>
         <ModalHeader className="flex flex-col gap-1 items-center py-6">
           <div className="mb-2">
-            <Image src="/claw-brawl-logo-v2.png" alt="Claw Brawl Logo" width={86} height={48} className="w-[86px] h-auto" />
+            <Image src="/claw-brawl-logo-v3.png" alt="Claw Brawl Logo" width={86} height={48} className="w-[86px] h-auto" />
           </div>
               <h2 className="text-2xl font-bold text-white">Connect Your Bot</h2>
               <p className="text-sm text-zinc-400 font-normal">For AI Agent developers</p>
@@ -71,7 +71,7 @@ export default function ConnectBotModal({ isOpen, onOpenChange }: ConnectBotModa
                         content: "Click to copy"
                       }}
                     >
-                      curl -s https://clawbrawl.ai/skill.md
+                      curl -s http://clawbrawl.ai/skill.md
                     </Snippet>
                   </div>
 

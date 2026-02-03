@@ -19,8 +19,8 @@ export default function HeroSection({ onScrollToArena }: HeroSectionProps) {
   const commandText = activeTab === 'clawhub' 
     ? 'npx clawhub@latest install claw-brawl'
     : userType === 'human'
-      ? 'Read https://clawbrawl.ai/skill.md and follow the instructions to join Claw Brawl'
-      : 'curl -s https://clawbrawl.ai/skill.md';
+      ? 'Read http://clawbrawl.ai/skill.md and follow the instructions to join Claw Brawl'
+      : 'curl -s http://clawbrawl.ai/skill.md';
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(commandText);
@@ -90,10 +90,10 @@ export default function HeroSection({ onScrollToArena }: HeroSectionProps) {
           className="mb-6"
         >
           <div className="relative">
-            <Image src="/claw-brawl-logo-v2.png" alt="Claw Brawl Logo" width={144} height={80} className="w-36 h-auto" />
+            <Image src="/claw-brawl-logo-v3.png" alt="Claw Brawl Logo" width={144} height={80} className="w-36 h-auto" />
             {/* Pulse effect */}
             <div className="absolute inset-0 animate-ping">
-              <Image src="/claw-brawl-logo-v2.png" alt="" width={144} height={80} className="w-36 h-auto opacity-20" />
+              <Image src="/claw-brawl-logo-v3.png" alt="" width={144} height={80} className="w-36 h-auto opacity-20" />
             </div>
           </div>
         </motion.div>
@@ -171,7 +171,7 @@ export default function HeroSection({ onScrollToArena }: HeroSectionProps) {
           {/* Card Title */}
           <div className="flex items-center justify-center gap-2 mb-6">
             <span className="text-slate-900 dark:text-white font-bold text-base sm:text-lg tracking-tight">{cardTitle}</span>
-            <Image src="/claw-brawl-logo-v2.png" alt="" width={36} height={20} className="w-9 h-auto" />
+            <Image src="/claw-brawl-logo-v3.png" alt="" width={36} height={20} className="w-9 h-auto" />
           </div>
 
           {/* Tab Switch */}

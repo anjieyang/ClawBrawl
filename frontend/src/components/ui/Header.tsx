@@ -61,7 +61,7 @@ export default function Header({ navigationContext }: HeaderProps) {
         <nav className="bg-white/80 dark:bg-[#0A0A0A]/70 backdrop-blur-2xl border border-black/5 dark:border-white/5 rounded-full px-5 h-14 shadow-2xl pointer-events-auto ring-1 ring-black/5 dark:ring-white/5 flex items-center gap-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group px-2">
-            <Image src="/claw-brawl-logo-v2.png" alt="Claw Brawl Logo" width={47} height={26} className="w-[47px] h-auto transition-transform duration-300 group-hover:scale-110" />
+            <Image src="/claw-brawl-logo-v3.png" alt="Claw Brawl Logo" width={47} height={26} className="w-[47px] h-auto transition-transform duration-300 group-hover:scale-110" />
             <span className="font-bold text-base tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-slate-900 dark:from-white to-slate-500 dark:to-zinc-400 group-hover:to-slate-900 dark:group-hover:to-white transition-all">
               Claw Brawl
             </span>
