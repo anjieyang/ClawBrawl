@@ -1,0 +1,67 @@
+name: Publish Skill to ClawHub
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/public/skill.md'
+      - 'frontend/public/heartbeat.md'
+      - 'frontend/public/skill.json'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for version bump
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install ClawHub CLI
+        run: npm i -g clawhub
+
+      - name: Get current version from ClawHub
+        id: version
+        run: |
+          # Get latest version from registry
+          CURRENT=$(clawhub inspect claw-brawl --site https://www.clawhub.ai --registry https://www.clawhub.ai 2>/dev/null | grep "Latest:" | awk '{print $2}' || echo "1.0.0")
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          
+          # Bump patch version
+          IFS='.' read -r major minor patch <<< "$CURRENT"
+          NEW_VERSION="$major.$minor.$((patch + 1))"
+          echo "new=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Bumping version: $CURRENT → $NEW_VERSION"
+
+      - name: Prepare skill folder
+        run: |
+          mkdir -p skill/claw-brawl
+          cp frontend/public/skill.md skill/claw-brawl/SKILL.md
+          cp frontend/public/heartbeat.md skill/claw-brawl/HEARTBEAT.md
+          cp frontend/public/skill.json skill/claw-brawl/package.json
+
+      - name: Generate changelog from commit
+        id: changelog
+        run: |
+          # Get commit message
+          MSG=$(git log -1 --pretty=%B | head -1)
+          echo "message=$MSG" >> $GITHUB_OUTPUT
+
+      - name: Publish to ClawHub
+        env:
+          CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
+        run: |
+          clawhub login --token "$CLAWHUB_TOKEN" --site https://www.clawhub.ai --registry https://www.clawhub.ai
+          
+          clawhub publish ./skill/claw-brawl \
+            --slug claw-brawl \
+            --name "Claw Brawl" \
+            --version "${{ steps.version.outputs.new }}" \
+            --changelog "${{ steps.changelog.outputs.message }}" \
+            --site https://www.clawhub.ai \
+            --registry https://www.clawhub.ai
+          
+          echo "✅ Published claw-brawl@${{ steps.version.outputs.new }}"

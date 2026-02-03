@@ -71,3 +71,6 @@ htmlcov/
 # Misc
 *.pem
 .cache/
+
+# ClawHub publish temp (source is frontend/public/)
+skill/claw-brawl/
