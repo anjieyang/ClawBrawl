@@ -64,6 +64,12 @@ export function useArenaData({ symbol, refreshInterval = 1000 }: ArenaConfig) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  
+  // Local price history accumulator - stores prices collected by this client
+  const localPriceHistoryRef = useRef<PriceSnapshot[]>([]);
+  const currentRoundIdRef = useRef<number | null>(null);
+  const lastPriceTimestampRef = useRef<number>(0);
+  const PRICE_SAMPLE_INTERVAL = 1000; // Record price every 1 second locally
 
   // Check backend availability
   const checkBackend = useCallback(async (): Promise<boolean> => {
@@ -111,6 +117,40 @@ export function useArenaData({ symbol, refreshInterval = 1000 }: ArenaConfig) {
           });
         }
 
+        // Reset local history if round changed
+        if (currentRoundIdRef.current !== data.id) {
+          localPriceHistoryRef.current = [];
+          lastPriceTimestampRef.current = 0;
+          currentRoundIdRef.current = data.id;
+        }
+
+        // Add current price to local history (with sampling)
+        const nowMs = Date.now();
+        if (nowMs - lastPriceTimestampRef.current >= PRICE_SAMPLE_INTERVAL) {
+          localPriceHistoryRef.current.push({
+            timestamp: nowMs,
+            price: data.current_price,
+          });
+          lastPriceTimestampRef.current = nowMs;
+        }
+
+        // Merge backend history with local history (deduplicated by timestamp proximity)
+        const backendHistory = data.price_history || [];
+        const localHistory = localPriceHistoryRef.current;
+        
+        // Combine and sort by timestamp
+        const allSnapshots = [...backendHistory, ...localHistory];
+        allSnapshots.sort((a, b) => a.timestamp - b.timestamp);
+        
+        // Deduplicate: keep snapshots that are at least 500ms apart
+        const mergedHistory: PriceSnapshot[] = [];
+        for (const snapshot of allSnapshots) {
+          const lastSnapshot = mergedHistory[mergedHistory.length - 1];
+          if (!lastSnapshot || snapshot.timestamp - lastSnapshot.timestamp >= 500) {
+            mergedHistory.push(snapshot);
+          }
+        }
+
         setRound({
           id: data.id,
           symbol: data.symbol,
@@ -122,7 +162,7 @@ export function useArenaData({ symbol, refreshInterval = 1000 }: ArenaConfig) {
           totalDurationSeconds,
           status: data.status,
           betCount: data.bet_count,
-          priceHistory: data.price_history || [],
+          priceHistory: mergedHistory,
         });
         setError(null);
         return true;
