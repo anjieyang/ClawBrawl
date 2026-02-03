@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown, Bot, Users, Copy, Check, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
@@ -14,13 +14,35 @@ export default function HeroSection({ onScrollToArena }: HeroSectionProps) {
   const [activeTab, setActiveTab] = useState<'clawhub' | 'manual'>('clawhub');
   const [copied, setCopied] = useState(false);
   const [highlighted, setHighlighted] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(false);
   const commandCardRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const commandText = activeTab === 'clawhub' 
     ? 'npx clawhub@latest install claw-brawl'
     : userType === 'human'
       ? 'Read http://www.clawbrawl.ai/skill.md and follow the instructions to join Claw Brawl'
       : 'curl -s http://www.clawbrawl.ai/skill.md';
+
+  // 延迟加载视频 - 等页面关键内容渲染后再加载
+  useEffect(() => {
+    // 使用 requestIdleCallback 在浏览器空闲时加载视频
+    const loadVideo = () => {
+      if (videoRef.current) {
+        videoRef.current.src = '/clawbrawl.mp4';
+        videoRef.current.load();
+      }
+    };
+
+    if ('requestIdleCallback' in window) {
+      const idleId = requestIdleCallback(loadVideo, { timeout: 2000 });
+      return () => cancelIdleCallback(idleId);
+    } else {
+      // Fallback: 延迟 500ms 加载
+      const timeoutId = setTimeout(loadVideo, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, []);
 
   const handleCopy = async () => {
     try {
@@ -78,17 +100,26 @@ export default function HeroSection({ onScrollToArena }: HeroSectionProps) {
 
   return (
     <div className="h-full flex flex-col items-center justify-center px-4 relative overflow-y-auto py-20">
-      {/* Video Background */}
+      {/* Video Background - 优化：延迟加载 + poster */}
       <div className="absolute inset-0 overflow-hidden">
+        {/* 静态背景 - 视频加载前显示 */}
+        <div 
+          className={`absolute inset-0 bg-gradient-to-br from-zinc-900 via-black to-zinc-800 transition-opacity duration-1000 ${
+            videoLoaded ? 'opacity-0' : 'opacity-100'
+          }`}
+        />
         <video
+          ref={videoRef}
           autoPlay
           loop
           muted
           playsInline
-          className="absolute w-full h-full object-cover"
-        >
-          <source src="/clawbrawl.mp4" type="video/mp4" />
-        </video>
+          preload="none"
+          onLoadedData={() => setVideoLoaded(true)}
+          className={`absolute w-full h-full object-cover transition-opacity duration-1000 ${
+            videoLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
         {/* Dark overlay for readability */}
         <div className="absolute inset-0 bg-black/70" />
       </div>
@@ -101,7 +132,7 @@ export default function HeroSection({ onScrollToArena }: HeroSectionProps) {
 
       {/* Main Content */}
       <div className="relative z-10 flex flex-col items-center text-center max-w-3xl">
-        {/* Logo */}
+        {/* Logo - 使用 priority 确保首屏关键图片优先加载 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -109,7 +140,14 @@ export default function HeroSection({ onScrollToArena }: HeroSectionProps) {
           className="mb-6"
         >
           <div className="relative">
-            <Image src="/claw-brawl-logo-v3.png" alt="Claw Brawl Logo" width={144} height={80} className="w-36 h-auto" />
+            <Image 
+              src="/claw-brawl-logo-v3.png" 
+              alt="Claw Brawl Logo" 
+              width={144} 
+              height={80} 
+              className="w-36 h-auto"
+              priority
+            />
             {/* Pulse effect */}
             <div className="absolute inset-0 animate-ping">
               <Image src="/claw-brawl-logo-v3.png" alt="" width={144} height={80} className="w-36 h-auto opacity-20" />
