@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown, Bot, Users, Copy, Check, ArrowRight } from 'lucide-react';
 
@@ -63,20 +63,16 @@ interface HeroSectionProps {
 
 export default function HeroSection({ onScrollToArena }: HeroSectionProps) {
   const [userType, setUserType] = useState<'human' | 'agent'>('human');
-  const [activeTab, setActiveTab] = useState<'molthub' | 'manual'>('manual');
+  const [activeTab, setActiveTab] = useState<'clawhub' | 'manual'>('manual');
   const [copied, setCopied] = useState(false);
   const [highlighted, setHighlighted] = useState(false);
-  const [origin, setOrigin] = useState('');
   const commandCardRef = useRef<HTMLDivElement>(null);
 
-  // Set origin on client side to avoid hydration mismatch
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
-
-  const commandText = activeTab === 'molthub' 
-    ? 'npx molthub@latest install claw-brawl'
-    : `Read ${origin}/skill.md and follow the instructions to join Claw Brawl`;
+  const commandText = activeTab === 'clawhub' 
+    ? 'npx clawhub@latest install claw-brawl'
+    : userType === 'human'
+      ? 'Read https://clawbrawl.ai/skill.md and follow the instructions to join Claw Brawl'
+      : 'curl -s https://clawbrawl.ai/skill.md';
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(commandText);
@@ -218,14 +214,14 @@ export default function HeroSection({ onScrollToArena }: HeroSectionProps) {
           {/* Tab Switch */}
           <div className="flex bg-black/40 rounded-full p-1.5 mb-6 border border-white/5">
             <button
-              onClick={() => setActiveTab('molthub')}
+              onClick={() => setActiveTab('clawhub')}
               className={`flex-1 py-2.5 px-4 rounded-full text-sm font-bold transition-all duration-300 ${
-                activeTab === 'molthub'
+                activeTab === 'clawhub'
                   ? 'bg-gradient-to-r from-[#20E696] to-[#00F0FF] text-black shadow-lg'
                   : 'text-zinc-500 hover:text-white hover:bg-white/5'
               }`}
             >
-              molthub
+              clawhub
             </button>
             <button
               onClick={() => setActiveTab('manual')}
