@@ -2,18 +2,61 @@
 
 import { useArenaData } from "@/hooks/useArenaData";
 import BattleArena from "@/components/home/BattleArena";
+import Danmaku from "@/components/ui/Danmaku";
 import { Loader2, WifiOff } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface ArenaContainerProps {
   symbol?: string;
   onScrollToLeaderboard?: () => void;
 }
 
+const normalizeDisplaySymbolToBackend = (displaySymbol: string) => displaySymbol.replaceAll('/', '');
+
+const formatBackendSymbolToDisplay = (backendSymbol: string) => {
+  if (backendSymbol.includes('/')) return backendSymbol;
+  if (backendSymbol.endsWith('USDT')) return backendSymbol.replace('USDT', '/USDT');
+  if (backendSymbol.endsWith('USD')) return backendSymbol.replace('USD', '/USD');
+  return backendSymbol;
+};
+
 export default function ArenaContainer({ symbol = "BTCUSDT", onScrollToLeaderboard }: ArenaContainerProps) {
+  const [selectedBackendSymbol, setSelectedBackendSymbol] = useState<string>(symbol);
+  const [selectedDisplaySymbol, setSelectedDisplaySymbol] = useState<string>(formatBackendSymbolToDisplay(symbol));
+  const [isArenaSectionActive, setIsArenaSectionActive] = useState(false);
+
   const { round, bets, recentRounds, loading, error, backendStatus } = useArenaData({
-    symbol,
+    symbol: selectedBackendSymbol,
     refreshInterval: 1000,
   });
+
+  // 仅在 Arena section 可见时启用弹幕（避免 fixed 弹幕覆盖 Hero/Leaderboard）
+  useEffect(() => {
+    const arenaSection = document.getElementById('section-arena');
+    if (!arenaSection) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const ratio = entry?.intersectionRatio ?? 0;
+        setIsArenaSectionActive(Boolean(entry?.isIntersecting) && ratio >= 0.6);
+      },
+      { threshold: [0, 0.6, 1] }
+    );
+
+    observer.observe(arenaSection);
+    return () => observer.disconnect();
+  }, []);
+
+  const effectiveDisplaySymbol = useMemo(() => {
+    // round.displayName 更准确（后端可能提供更友好的名称）
+    return round?.displayName ? round.displayName : selectedDisplaySymbol;
+  }, [round?.displayName, selectedDisplaySymbol]);
+
+  const handleSelectSymbol = useCallback((displaySymbol: string) => {
+    const backendSymbol = normalizeDisplaySymbolToBackend(displaySymbol);
+    setSelectedBackendSymbol(backendSymbol);
+    setSelectedDisplaySymbol(displaySymbol);
+  }, []);
 
   // Loading state
   if (loading) {
@@ -76,6 +119,12 @@ export default function ArenaContainer({ symbol = "BTCUSDT", onScrollToLeaderboa
 
   return (
     <>
+      <Danmaku
+        enabled={isArenaSectionActive && backendStatus === 'online' && !!round}
+        symbol={effectiveDisplaySymbol}
+        roundId={round.id}
+      />
+
       {/* Backend Status Indicator (dev only) */}
       {process.env.NODE_ENV === 'development' && (
         <div className="fixed bottom-4 left-4 px-3 py-1.5 rounded-full text-xs font-mono z-50 bg-[#FF5722]/20 text-[#FF5722] border border-[#FF5722]/30">
@@ -85,6 +134,8 @@ export default function ArenaContainer({ symbol = "BTCUSDT", onScrollToLeaderboa
       
       <BattleArena 
         round={round} 
+        selectedSymbol={effectiveDisplaySymbol}
+        onSelectSymbol={handleSelectSymbol}
         bets={bets}
         recentRounds={displayRecentRounds}
         totalBets={round.betCount}

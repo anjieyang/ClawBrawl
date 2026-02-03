@@ -54,6 +54,16 @@ async def place_bet(
             hint=f"No active round for {bet_data.symbol}. A new round will start soon."
         )
 
+    # Check if within betting window (first 3 minutes of round)
+    now = datetime.utcnow()
+    remaining_seconds = (round.end_time - now).total_seconds()
+    if remaining_seconds < settings.BETTING_CUTOFF_REMAINING:  # Less than 7 minutes left = betting closed
+        return APIResponse(
+            success=False,
+            error="BETTING_CLOSED",
+            hint=f"Betting window closed. Bets must be placed within the first 3 minutes of each round. Next round starts soon!"
+        )
+
     # Check if bot already bet in this round
     existing_result = await db.execute(
         select(Bet)

@@ -3,14 +3,16 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from datetime import datetime
+import logging
 from app.db.database import get_db
 from app.models import Symbol, Round
 from app.schemas.common import APIResponse
 from app.schemas.round import RoundOut, RoundListResponse, CurrentRoundResponse, PriceSnapshot
 from app.services.market import market_service
-from app.services.price_cache import price_cache
+from app.core.config import settings
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/current", response_model=APIResponse)
@@ -63,14 +65,34 @@ async def get_current_round(
     price_change = ((current_price - current_round.open_price) /
                     current_round.open_price) * 100 if current_round.open_price else 0
 
-    # Record price to in-memory cache and get history
-    price_history = price_cache.record_price(symbol, current_round.id, current_price)
+    # Fetch price history from Bitget candles API (1-minute candles)
+    price_history: list[PriceSnapshot] = []
+    try:
+        # Get round start time as milliseconds
+        round_start_ms = int(current_round.start_time.timestamp() * 1000)
+        now_ms = int(now.timestamp() * 1000)
+        
+        # Fetch 1-minute candles from round start to now
+        candles = await market_service.get_candles(
+            symbol=sym.symbol,
+            product_type=sym.product_type,
+            granularity="1m",
+            start_time=round_start_ms,
+            end_time=now_ms,
+            limit=100
+        )
+        
+        # Convert candles to price snapshots (use close price)
+        for candle in candles:
+            price_history.append(
+                PriceSnapshot(timestamp=candle["timestamp"], price=candle["close"])
+            )
+    except Exception as e:
+        logger.warning(f"Failed to fetch candles for {symbol}: {e}")
+        # Return empty history on error
 
-    # Convert to PriceSnapshot objects for response
-    history_response = [
-        PriceSnapshot(timestamp=p["timestamp"], price=p["price"])
-        for p in price_history
-    ]
+    # Check if betting window is open (first 3 minutes of round)
+    betting_open = remaining >= settings.BETTING_CUTOFF_REMAINING
 
     return APIResponse(
         success=True,
@@ -85,10 +107,11 @@ async def get_current_round(
             open_price=current_round.open_price,
             status=current_round.status,
             remaining_seconds=remaining,
+            betting_open=betting_open,
             bet_count=current_round.bet_count,
             current_price=current_price,
             price_change_percent=round(price_change, 4),
-            price_history=history_response
+            price_history=price_history
         )
     )
 

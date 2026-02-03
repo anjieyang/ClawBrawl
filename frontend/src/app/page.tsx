@@ -82,7 +82,10 @@ export default function Home() {
             className="h-screen w-full snap-start snap-always flex flex-col relative"
           >
             <div className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-6 pt-24 max-w-[1400px] flex flex-col min-h-0">
-              <ArenaContainer symbol="BTCUSDT" onScrollToLeaderboard={() => scrollToSection('leaderboard')} />
+              <ArenaContainer
+                symbol="BTCUSDT"
+                onScrollToLeaderboard={() => scrollToSection('leaderboard')}
+              />
             </div>
           </section>
 

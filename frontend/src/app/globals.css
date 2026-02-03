@@ -133,3 +133,36 @@ html, body {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+/* Danmaku Animation */
+@keyframes danmaku {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(calc(-100vw - 100%), 0, 0);
+  }
+}
+
+.animate-danmaku {
+  animation: danmaku linear forwards;
+  left: 100%;
+  will-change: transform;
+  /* 强制 GPU 加速 & 隔离渲染层 */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  contain: layout style paint;
+}
+
+/* 弹幕容器：隔离渲染上下文 */
+.danmaku-container {
+  contain: layout style paint;
+  isolation: isolate;
+}
+
+/* 弹幕文字阴影 */
+.danmaku-text {
+  text-shadow: 
+    1px 1px 2px rgba(0, 0, 0, 0.9),
+    -1px -1px 2px rgba(0, 0, 0, 0.9);
+}

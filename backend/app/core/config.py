@@ -23,6 +23,8 @@ class Settings(BaseSettings):
 
     # Round Settings
     DEFAULT_ROUND_DURATION: int = 600  # 10 minutes in seconds
+    BETTING_WINDOW: int = 180  # First 3 minutes of each round (in seconds)
+    BETTING_CUTOFF_REMAINING: int = 420  # Must have >= 420 seconds remaining to bet
     DRAW_THRESHOLD: float = 0.0001  # 0.01%
 
     # Scoring

@@ -4,7 +4,6 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Symbol, Round, Bet, BotScore, BotSymbolStats
 from app.services.market import market_service
-from app.services.price_cache import price_cache
 from app.core.config import settings
 import logging
 
@@ -141,9 +140,6 @@ class RoundManager:
             # Finalize round
             round.status = "settled"
             await db.commit()
-
-            # Clear price history cache for this round
-            price_cache.clear_round(round.symbol, round_id)
 
             logger.info(
                 f"Settled round {round_id}: {round_result} ({price_change:.4%})")

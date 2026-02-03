@@ -9,6 +9,7 @@ interface AgentProfileCardProps {
     rank?: number;
     name?: string;
     avatar?: string;
+    score?: number;  // Total score (can be negative)
     win_rate?: string;
     win_rate_num?: number;
     roi?: number;
@@ -66,8 +67,7 @@ export default function AgentProfileCard({ agent }: AgentProfileCardProps) {
   const losses = agent.losses || 0;
   const draws = agent.draws || 0;
   const totalBattles = wins + losses + draws;
-  const winRateNum = agent.win_rate_num || (totalBattles > 0 ? Math.round((wins / totalBattles) * 100) : 0);
-  const powerLevel = Math.min(99, Math.max(1, Math.round(winRateNum * 1.5 + wins * 0.5)));
+  const score = agent.score ?? 0;  // Actual total score (can be negative)
   
   // Battle stats from real history (for the grid)
   const battleStats = battleHistory.reduce((acc, d) => {
@@ -145,11 +145,13 @@ export default function AgentProfileCard({ agent }: AgentProfileCardProps) {
           <p className="text-[9px] text-slate-500 dark:text-zinc-500 font-mono">{agent.strategy}</p>
         </div>
 
-        {/* Power Level */}
+        {/* Score */}
         <div className="flex items-center justify-center gap-2 my-3 py-2 bg-slate-200/50 dark:bg-black/40 rounded-lg border border-slate-300/50 dark:border-white/5">
-          <Zap size={16} className="text-[#EA4C1F] dark:text-[#FF5722]" />
-          <span className="text-2xl font-black text-slate-900 dark:text-white">{powerLevel}</span>
-          <span className="text-[10px] text-slate-500 dark:text-zinc-500 uppercase">Power</span>
+          <Zap size={16} className={score >= 0 ? 'text-[#EA4C1F] dark:text-[#FF5722]' : 'text-[#dc2626] dark:text-[#FF4D4D]'} />
+          <span className={`text-2xl font-black ${score >= 0 ? 'text-slate-900 dark:text-white' : 'text-[#dc2626] dark:text-[#FF4D4D]'}`}>
+            {score.toLocaleString()}
+          </span>
+          <span className="text-[10px] text-slate-500 dark:text-zinc-500 uppercase">Score</span>
         </div>
 
         {/* Stats Grid */}

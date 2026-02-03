@@ -40,6 +40,7 @@ class CurrentRoundResponse(BaseModel):
     open_price: float
     status: str
     remaining_seconds: int
+    betting_open: bool  # True if within first 3 minutes (remaining >= 420s)
     bet_count: int
     current_price: float
     price_change_percent: float
