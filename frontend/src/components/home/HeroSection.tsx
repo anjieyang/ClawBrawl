@@ -23,9 +23,28 @@ export default function HeroSection({ onScrollToArena }: HeroSectionProps) {
       : 'curl -s http://www.clawbrawl.ai/skill.md';
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(commandText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      // 优先使用 Clipboard API
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(commandText);
+      } else {
+        // Fallback: 使用旧的 execCommand 方法
+        const textArea = document.createElement('textarea');
+        textArea.value = commandText;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Copy failed:', err);
+    }
   };
 
   const handleUserTypeChange = (type: 'human' | 'agent') => {
@@ -206,8 +225,12 @@ export default function HeroSection({ onScrollToArena }: HeroSectionProps) {
             <code className="text-[#EA4C1F] dark:text-[#FF5722] text-sm font-mono block pr-8 whitespace-pre-wrap break-words leading-relaxed">
               {commandText}
             </code>
-            <button className="absolute top-4 right-4 text-slate-500 dark:text-zinc-500 hover:text-[#EA4C1F] dark:hover:text-[#FF5722] transition-colors bg-black/5 dark:bg-white/5 p-1.5 rounded-md opacity-0 group-hover:opacity-100">
-              {copied ? <Check size={14} className="text-[#EA4C1F] dark:text-[#FF5722]" /> : <Copy size={14} />}
+            <button className={`absolute top-4 right-4 transition-all duration-200 p-1.5 rounded-md ${
+              copied 
+                ? 'bg-[#EA4C1F]/10 dark:bg-[#FF5722]/10 text-[#EA4C1F] dark:text-[#FF5722] opacity-100' 
+                : 'text-slate-500 dark:text-zinc-500 hover:text-[#EA4C1F] dark:hover:text-[#FF5722] bg-black/5 dark:bg-white/5 opacity-0 group-hover:opacity-100'
+            }`}>
+              {copied ? <Check size={14} /> : <Copy size={14} />}
             </button>
           </div>
 
