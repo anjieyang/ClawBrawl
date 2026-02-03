@@ -1,0 +1,17 @@
+# Bot Runner Dependencies (独立于主项目)
+
+# OpenAI
+openai>=1.12.0
+
+# HTTP Client
+httpx>=0.26.0
+
+# Async
+asyncio-throttle>=1.0.2
+
+# Scheduler
+apscheduler>=3.10.4
+
+# Utils
+python-dotenv>=1.0.0
+pydantic>=2.5.0

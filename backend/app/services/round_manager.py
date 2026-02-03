@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Tuple
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Symbol, Round, Bet, BotScore, BotSymbolStats
@@ -13,6 +13,53 @@ logger = logging.getLogger(__name__)
 class RoundManager:
     """Service for managing game rounds"""
 
+    @staticmethod
+    def get_aligned_round_times(now: datetime, round_duration_seconds: int = 600) -> Tuple[datetime, datetime]:
+        """
+        Calculate aligned round start and end times based on fixed intervals.
+        
+        Rounds are aligned to fixed time boundaries (e.g., :00, :10, :20, :30, :40, :50 for 10-min rounds).
+        This ensures all rounds start and end at predictable times.
+        
+        Args:
+            now: Current UTC datetime
+            round_duration_seconds: Round duration in seconds (default 600 = 10 minutes)
+        
+        Returns:
+            Tuple of (start_time, end_time) aligned to interval boundaries
+        """
+        interval_minutes = round_duration_seconds // 60
+        
+        # Calculate the current interval's start time
+        # Floor the current time to the nearest interval boundary
+        current_minute = now.minute
+        aligned_minute = (current_minute // interval_minutes) * interval_minutes
+        
+        start_time = now.replace(minute=aligned_minute, second=0, microsecond=0)
+        end_time = start_time + timedelta(seconds=round_duration_seconds)
+        
+        return start_time, end_time
+
+    @staticmethod
+    def get_next_round_times(now: datetime, round_duration_seconds: int = 600) -> Tuple[datetime, datetime]:
+        """
+        Calculate the NEXT round's start and end times.
+        
+        Used when we need to create a round for the upcoming interval.
+        
+        Args:
+            now: Current UTC datetime
+            round_duration_seconds: Round duration in seconds
+        
+        Returns:
+            Tuple of (start_time, end_time) for the next interval
+        """
+        current_start, _ = RoundManager.get_aligned_round_times(now, round_duration_seconds)
+        next_start = current_start + timedelta(seconds=round_duration_seconds)
+        next_end = next_start + timedelta(seconds=round_duration_seconds)
+        
+        return next_start, next_end
+
     async def get_current_round(self, db: AsyncSession, symbol: str) -> Optional[Round]:
         """Get the current active round for a symbol"""
         result = await db.execute(
@@ -23,10 +70,32 @@ class RoundManager:
         )
         return result.scalar_one_or_none()
 
-    async def create_round(self, db: AsyncSession, symbol_config: Symbol) -> Round:
-        """Create a new round for a symbol"""
+    async def create_round(
+        self, 
+        db: AsyncSession, 
+        symbol_config: Symbol,
+        force_aligned: bool = True
+    ) -> Round:
+        """
+        Create a new round for a symbol with aligned start/end times.
+        
+        Args:
+            db: Database session
+            symbol_config: Symbol configuration
+            force_aligned: If True, align times to interval boundaries (default True)
+        
+        Returns:
+            The created Round object
+        """
         now = datetime.utcnow()
         duration = symbol_config.round_duration or settings.DEFAULT_ROUND_DURATION
+
+        # Calculate aligned times
+        if force_aligned:
+            start_time, end_time = self.get_aligned_round_times(now, duration)
+        else:
+            start_time = now
+            end_time = now + timedelta(seconds=duration)
 
         # Get current price
         try:
@@ -43,8 +112,8 @@ class RoundManager:
         # Create round
         round = Round(
             symbol=symbol_config.symbol,
-            start_time=now,
-            end_time=now + timedelta(seconds=duration),
+            start_time=start_time,
+            end_time=end_time,
             open_price=open_price,
             status="active"
         )
@@ -54,7 +123,7 @@ class RoundManager:
         await db.refresh(round)
 
         logger.info(
-            f"Created round {round.id} for {symbol_config.symbol} at {open_price}")
+            f"Created round {round.id} for {symbol_config.symbol}: {start_time.strftime('%H:%M')} - {end_time.strftime('%H:%M')} @ {open_price}")
         return round
 
     async def settle_round(self, db: AsyncSession, round_id: int) -> None:

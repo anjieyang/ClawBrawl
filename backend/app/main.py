@@ -29,7 +29,12 @@ scheduler = AsyncIOScheduler()
 async def round_scheduler_job():
     """
     Round scheduler job - runs every 5 seconds
-    Checks all enabled symbols and manages their rounds
+    Checks all enabled symbols and manages their rounds.
+    
+    Rounds are aligned to fixed 10-minute intervals:
+    - Start times: :00, :10, :20, :30, :40, :50
+    - Each round runs for exactly 10 minutes
+    - Example: 14:00-14:10, 14:10-14:20, etc.
     """
     logger.debug("Running round scheduler...")
 
@@ -43,6 +48,10 @@ async def round_scheduler_job():
         for sym in symbols:
             try:
                 now = datetime.utcnow()
+                duration = sym.round_duration or settings.DEFAULT_ROUND_DURATION
+                
+                # Calculate current aligned interval
+                current_start, current_end = round_manager.get_aligned_round_times(now, duration)
 
                 # Check for active or settling rounds
                 active_result = await db.execute(
@@ -54,27 +63,57 @@ async def round_scheduler_job():
                 active_round = active_result.scalar_one_or_none()
 
                 if active_round:
-                    # Check if round should be settled
+                    # Check if round should be settled (end_time has passed)
                     if now >= active_round.end_time:
                         logger.info(
-                            f"Settling round {active_round.id} for {sym.symbol} (status: {active_round.status})")
+                            f"Settling round {active_round.id} for {sym.symbol} "
+                            f"(ended at {active_round.end_time.strftime('%H:%M:%S')}, status: {active_round.status})")
                         try:
                             await round_manager.settle_round(db, active_round.id)
-                            # Create new round after successful settlement
-                            logger.info(f"Creating new round for {sym.symbol}")
-                            await round_manager.create_round(db, sym)
                         except Exception as settle_err:
                             logger.error(
                                 f"Settlement error for {sym.symbol}: {settle_err}")
-                            # Still create a new round to keep the game going
-                            logger.info(
-                                f"Creating new round for {sym.symbol} despite settlement error")
-                            await round_manager.create_round(db, sym)
+                        
+                        # Check if we need a new round for the current interval
+                        # Only create if we're within the current aligned interval
+                        if current_start <= now < current_end:
+                            # Check if a round already exists for this interval
+                            existing_result = await db.execute(
+                                select(Round)
+                                .where(
+                                    Round.symbol == sym.symbol,
+                                    Round.start_time == current_start
+                                )
+                            )
+                            existing_round = existing_result.scalar_one_or_none()
+                            
+                            if not existing_round:
+                                logger.info(
+                                    f"Creating new round for {sym.symbol} "
+                                    f"({current_start.strftime('%H:%M')} - {current_end.strftime('%H:%M')})")
+                                await round_manager.create_round(db, sym)
                 else:
-                    # No active round, create one
-                    logger.info(
-                        f"No active round for {sym.symbol}, creating one")
-                    await round_manager.create_round(db, sym)
+                    # No active round - check if we should create one for current interval
+                    if current_start <= now < current_end:
+                        # Check if a round already exists for this interval (might be settled)
+                        existing_result = await db.execute(
+                            select(Round)
+                            .where(
+                                Round.symbol == sym.symbol,
+                                Round.start_time == current_start
+                            )
+                        )
+                        existing_round = existing_result.scalar_one_or_none()
+                        
+                        if not existing_round:
+                            logger.info(
+                                f"No active round for {sym.symbol}, creating one "
+                                f"({current_start.strftime('%H:%M')} - {current_end.strftime('%H:%M')})")
+                            await round_manager.create_round(db, sym)
+                        else:
+                            logger.debug(
+                                f"Round already exists for current interval {sym.symbol} "
+                                f"(id={existing_round.id}, status={existing_round.status})")
 
             except Exception as e:
                 logger.error(f"Error processing {sym.symbol}: {e}")

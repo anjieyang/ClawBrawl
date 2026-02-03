@@ -282,33 +282,33 @@ export default function PriceChart({
             strokeWidth={1}
           />
 
-          {/* Above openPrice: line + fill to openPrice */}
+          {/* Above openPrice: GREEN line + fill (price is UP = profit) */}
           <Area
             type="monotone"
             dataKey="above"
-            stroke="#FF5722"
+            stroke="#22C55E"
             strokeOpacity={0.9}
             strokeWidth={2}
-            fill="#FF5722"
+            fill="#22C55E"
             fillOpacity={0.18}
             baseValue={openPrice}
             isAnimationActive={false}
-            dot={<CustomizedDot data={splitSeries} color="#FF5722" dataKey="above" isActiveSeries={isUp} />}
+            dot={<CustomizedDot data={splitSeries} color="#22C55E" dataKey="above" isActiveSeries={isUp} />}
             connectNulls={false}
           />
 
-          {/* Below openPrice: line + fill to openPrice */}
+          {/* Below openPrice: RED line + fill (price is DOWN = loss) */}
           <Area
             type="monotone"
             dataKey="below"
-            stroke="#FF4D4D"
+            stroke="#EF4444"
             strokeOpacity={0.9}
             strokeWidth={2}
-            fill="#FF4D4D"
+            fill="#EF4444"
             fillOpacity={0.18}
             baseValue={openPrice}
             isAnimationActive={false}
-            dot={<CustomizedDot data={splitSeries} color="#FF4D4D" dataKey="below" isActiveSeries={!isUp} />}
+            dot={<CustomizedDot data={splitSeries} color="#EF4444" dataKey="below" isActiveSeries={!isUp} />}
             connectNulls={false}
           />
         </AreaChart>
