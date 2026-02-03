@@ -382,12 +382,56 @@ async def get_current_round_bets(
     scores = {s.bot_id: s for s in (
         scores_result.scalars().all() if scores_result else [])}
 
+    # Get recent bets for streak calculation (last 10 settled bets per bot)
+    streaks: dict[str, int] = {}
+    if bot_ids:
+        rn = func.row_number().over(
+            partition_by=Bet.bot_id, order_by=Bet.created_at.desc()
+        ).label("rn")
+        subq = (
+            select(Bet.bot_id, Bet.result, rn)
+            .where(Bet.bot_id.in_(bot_ids), Bet.result != "pending")
+            .subquery()
+        )
+        streak_rows = await db.execute(
+            select(subq.c.bot_id, subq.c.result)
+            .where(subq.c.rn <= 10)
+            .order_by(subq.c.bot_id, subq.c.rn)
+        )
+        
+        # Group results by bot_id and calculate streak
+        bot_results: dict[str, list[str]] = {}
+        for bot_id, result in streak_rows.all():
+            if bot_id not in bot_results:
+                bot_results[bot_id] = []
+            bot_results[bot_id].append(result)
+        
+        for bot_id, results in bot_results.items():
+            streak = 0
+            for res in results:
+                if res == "win":
+                    streak = streak + 1 if streak >= 0 else 1
+                elif res == "lose":
+                    streak = streak - 1 if streak <= 0 else -1
+                else:
+                    break
+            streaks[bot_id] = streak
+
     # Split by direction
     long_bets = []
     short_bets = []
 
     for bet in all_bets:
         bot_score = scores.get(bet.bot_id)
+        
+        # Calculate win rate
+        win_rate = 0.0
+        score = 0
+        if bot_score:
+            total_rounds = bot_score.total_wins + bot_score.total_losses + bot_score.total_draws
+            win_rate = round(bot_score.total_wins / total_rounds, 2) if total_rounds > 0 else 0.0
+            score = bot_score.total_score
+        
         bet_info = CurrentRoundBet(
             id=bet.id,
             bot_id=bet.bot_id,
@@ -396,7 +440,10 @@ async def get_current_round_bets(
             direction=bet.direction,
             reason=bet.reason,
             confidence=bet.confidence,
-            created_at=bet.created_at
+            created_at=bet.created_at,
+            score=score,
+            win_rate=win_rate,
+            streak=streaks.get(bet.bot_id, 0)
         )
 
         if bet.direction == "long":

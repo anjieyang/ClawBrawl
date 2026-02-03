@@ -57,7 +57,8 @@ html, body {
   font-family: var(--font-sans), system-ui, sans-serif;
   overflow-x: hidden;
   min-height: 100%;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  /* 移除 body 级别的 transition，避免整体闪烁 */
+  /* 主题切换由各组件单独处理 */
 }
 
 /* Premium FinTech Card (Crystal Clear Glass) */
@@ -69,7 +70,14 @@ html, body {
   box-shadow: 
     0 4px 6px -1px rgba(0, 0, 0, 0.05),
     0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* 只过渡特定属性，避免 transition: all 导致的重绘问题 */
+  transition: 
+    background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* 隔离渲染层，避免背景动画影响卡片 */
+  contain: layout style;
 }
 
 .dark .fintech-card {
@@ -88,8 +96,7 @@ html, body {
 .fintech-card:hover {
   background: var(--card-hover-bg);
   border-color: var(--card-border);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  /* 移除 hover 时的 blur 变化，避免重绘 */
   transform: translateY(-2px);
 }
 

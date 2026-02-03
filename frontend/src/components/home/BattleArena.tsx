@@ -2,12 +2,13 @@
 
 import { Avatar, Tooltip, Modal, ModalContent, ModalHeader, ModalBody } from "@nextui-org/react";
 import { TrendingUp, TrendingDown, Target, ArrowUp, ArrowDown, Wallet, Activity, Flame, Skull, MessageSquareText, X, Trophy, ChevronDown } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import PriceChart from "@/components/home/PriceChart";
 import SymbolSearch from "@/components/home/SymbolSearch";
 import FlipClock from "@/components/ui/FlipClock";
+import api, { KeywordItem } from "@/lib/api";
 
 interface BotBet {
   id: number;
@@ -71,65 +72,57 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
   const [priceDirection, setPriceDirection] = useState<'up' | 'down'>('up');
   const [priceFlash, setPriceFlash] = useState(false);
   
+  // AI-generated keywords state
+  const [longKeywords, setLongKeywords] = useState<KeywordItem[]>([]);
+  const [shortKeywords, setShortKeywords] = useState<KeywordItem[]>([]);
+  const [keywordsLoading, setKeywordsLoading] = useState(false);
+  
   // Calculate prize pool based on actual total bets (each bet contributes to the pool)
   const prizePool = totalBets * 10; // 10 PTS per bet
   
   // Count agents with reasons
   const agentsWithReasons = [...bets.long, ...bets.short].filter(b => b.reason).length;
 
-  // Extract keywords from analysis text
-  const extractKeywords = (text: string): string[] => {
-    const keywords: string[] = [];
-    const lowerText = text.toLowerCase();
-    
-    // Technical indicators
-    const indicators = ['rsi', 'macd', 'ema', 'sma', 'bollinger', 'fibonacci', 'volume', 'momentum', 'divergence', 'support', 'resistance', 'breakout', 'breakdown'];
-    // Market conditions
-    const conditions = ['bullish', 'bearish', 'overbought', 'oversold', 'consolidation', 'trend', 'reversal', 'continuation'];
-    // Price patterns
-    const patterns = ['double top', 'double bottom', 'head and shoulders', 'triangle', 'wedge', 'flag', 'pennant', 'cup and handle'];
-    // Time frames
-    const timeframes = ['4h', '1h', '1d', 'daily', 'weekly', 'hourly'];
-    // Actions
-    const actions = ['accumulation', 'distribution', 'pump', 'dump', 'squeeze', 'rally', 'correction', 'pullback'];
-    
-    const allKeywords = [...indicators, ...conditions, ...patterns, ...timeframes, ...actions];
-    
-    for (const kw of allKeywords) {
-      if (lowerText.includes(kw) && !keywords.includes(kw.toUpperCase())) {
-        keywords.push(kw.toUpperCase());
-      }
-    }
-    
-    // Extract price targets (e.g., "80k", "75k")
-    const priceMatches = text.match(/\b\d+k\b/gi);
-    if (priceMatches) {
-      priceMatches.forEach(p => {
-        if (!keywords.includes(p.toUpperCase())) {
-          keywords.push(p.toUpperCase());
-        }
-      });
-    }
-    
-    return keywords.slice(0, 4); // Max 4 keywords
+  // Extract meaningful English phrases from analysis text (fallback when API unavailable)
+  const phraseMap: Record<string, string> = {
+    'dip': 'Buy the dip',
+    'moon': 'To the moon',
+    'accumulation': 'Whales accumulating',
+    'distribution': 'Distribution phase',
+    'squeeze': 'Short squeeze',
+    'momentum': 'Strong momentum',
+    'reversal': 'Reversal signal',
+    'breakout': 'Breakout imminent',
+    'support': 'Support holding',
+    'resistance': 'Resistance test',
+    'trend': 'Trend continuation',
+    'panic': 'Panic selling',
+    'dump': 'Downside risk',
+    'rally': 'Rally incoming',
+    'correction': 'Healthy pullback',
+    'whale': 'Whale activity',
+    'funding': 'Funding favorable',
+    'mean': 'Mean reversion',
   };
 
   // Helper functions for aggregated stats
   const getAggregatedKeywords = (betsList: BotBet[]) => {
-    const keywordCounts: Record<string, number> = {};
+    const phraseCounts: Record<string, number> = {};
     
     betsList.forEach(bet => {
       if (bet.reason) {
-        const keywords = extractKeywords(bet.reason);
-        keywords.forEach(kw => {
-          keywordCounts[kw] = (keywordCounts[kw] || 0) + 1;
-        });
+        const lowerReason = bet.reason.toLowerCase();
+        for (const [keyword, phrase] of Object.entries(phraseMap)) {
+          if (lowerReason.includes(keyword)) {
+            phraseCounts[phrase] = (phraseCounts[phrase] || 0) + 1;
+          }
+        }
       }
     });
     
-    return Object.entries(keywordCounts)
+    return Object.entries(phraseCounts)
       .sort(([, a], [, b]) => b - a)
-      .slice(0, 5)
+      .slice(0, 4)
       .map(([keyword, count]) => ({ keyword, count }));
   };
 
@@ -152,6 +145,44 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Fetch AI-generated keywords when analysis panel opens
+  const fetchKeywords = useCallback(async () => {
+    const longReasons = bets.long.filter(b => b.reason).map(b => b.reason!);
+    const shortReasons = bets.short.filter(b => b.reason).map(b => b.reason!);
+    
+    if (longReasons.length === 0 && shortReasons.length === 0) {
+      setLongKeywords([]);
+      setShortKeywords([]);
+      return;
+    }
+
+    setKeywordsLoading(true);
+    try {
+      const [longRes, shortRes] = await Promise.all([
+        longReasons.length > 0 ? api.extractKeywords(longReasons, 'long', 5) : Promise.resolve({ success: true, data: { keywords: [] } }),
+        shortReasons.length > 0 ? api.extractKeywords(shortReasons, 'short', 5) : Promise.resolve({ success: true, data: { keywords: [] } }),
+      ]);
+
+      if (longRes.success && longRes.data) {
+        setLongKeywords(longRes.data.keywords);
+      }
+      if (shortRes.success && shortRes.data) {
+        setShortKeywords(shortRes.data.keywords);
+      }
+    } catch (error) {
+      console.error('Failed to fetch keywords:', error);
+    } finally {
+      setKeywordsLoading(false);
+    }
+  }, [bets.long, bets.short]);
+
+  // Fetch keywords when panel opens
+  useEffect(() => {
+    if (isAnalysisPanelOpen) {
+      fetchKeywords();
+    }
+  }, [isAnalysisPanelOpen, fetchKeywords]);
 
   // Track previous round ID to detect new rounds
   const prevRoundIdRef = useRef(round.id);
@@ -393,10 +424,10 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                             </>
                          ) : (
                             <>
-                                <span className="text-[10px] font-mono text-zinc-500 font-medium">
+                                <span className={`text-[10px] font-mono font-medium ${Math.abs(streak || 0) >= 3 ? "text-[#EF4444] font-bold" : "text-zinc-500"}`}>
                                     {Math.abs(streak || 0)} Loss
                                 </span>
-                                <Skull size={12} className="text-zinc-500" />
+                                <Skull size={12} className={Math.abs(streak || 0) >= 3 ? "text-[#EF4444]" : "text-zinc-500"} />
                             </>
                          )}
                       </div>
@@ -579,10 +610,10 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                             </>
                          ) : (
                             <>
-                                <span className="text-[10px] font-mono text-zinc-500 font-medium">
+                                <span className={`text-[10px] font-mono font-medium ${Math.abs(streak || 0) >= 3 ? "text-[#EF4444] font-bold" : "text-zinc-500"}`}>
                                     {Math.abs(streak || 0)} Loss
                                 </span>
-                                <Skull size={12} className="text-zinc-500" />
+                                <Skull size={12} className={Math.abs(streak || 0) >= 3 ? "text-[#EF4444]" : "text-zinc-500"} />
                             </>
                          )}
                       </div>
@@ -673,14 +704,14 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
         <div className="fixed inset-0 z-[100] flex items-center justify-center">
           {/* Backdrop */}
           <div 
-            className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setIsAnalysisPanelOpen(false)}
           />
           
           {/* Panel */}
-          <div className="relative w-[1200px] max-w-[95vw] h-[85vh] bg-zinc-950/80 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+          <div className="relative w-[1200px] max-w-[95vw] h-[85vh] bg-zinc-900/40 backdrop-blur-3xl border border-white/20 rounded-2xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/5 ring-inset">
             {/* Header */}
-            <div className="flex items-center justify-between px-8 py-5 border-b border-white/10 bg-zinc-900/50">
+            <div className="flex items-center justify-between px-8 py-5 border-b border-white/10 bg-white/5 backdrop-blur-sm">
               <div className="flex items-center gap-4">
                 <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20">
                   <MessageSquareText size={24} className="text-purple-400" />
@@ -728,12 +759,13 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                   {/* Stats Grid */}
                   {(() => {
                     const stats = getConfidenceStats(bets.long);
-                    const keywords = getAggregatedKeywords(bets.long);
+                    // Use AI-generated keywords, fallback to local extraction
+                    const keywords = longKeywords.length > 0 ? longKeywords : getAggregatedKeywords(bets.long);
                     
                     return (
                       <div className="grid grid-cols-2 gap-6 h-[120px]">
                         {/* Confidence Distribution */}
-                        <div className="bg-zinc-900/50 rounded-xl p-4 border border-white/5 h-full">
+                        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 h-full">
                           <div className="text-xs font-semibold text-zinc-400 mb-3 uppercase tracking-wider">Confidence Dist.</div>
                           <div className="space-y-2">
                             <div className="flex items-center gap-2 text-xs">
@@ -760,13 +792,16 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                           </div>
                         </div>
                         
-                        {/* Top Keywords */}
-                        <div className="bg-zinc-900/50 rounded-xl p-4 border border-white/5 h-full overflow-hidden">
-                          <div className="text-xs font-semibold text-zinc-400 mb-3 uppercase tracking-wider">Key Themes</div>
+                        {/* Top Keywords - AI Generated */}
+                        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 h-full overflow-hidden">
+                          <div className="text-xs font-semibold text-zinc-400 mb-3 uppercase tracking-wider flex items-center gap-2">
+                            Key Themes
+                            {keywordsLoading && <span className="w-3 h-3 border border-zinc-500 border-t-transparent rounded-full animate-spin" />}
+                          </div>
                           <div className="flex flex-wrap gap-2 overflow-hidden max-h-[60px]">
-                            {keywords.length > 0 ? keywords.slice(0, 5).map((kw, i) => (
+                            {keywords.length > 0 ? keywords.slice(0, 4).map((kw, i) => (
                               <span key={i} className="px-2 py-1 rounded-md bg-[#FF5722]/10 text-[#FF5722] text-xs border border-[#FF5722]/20">
-                                {kw.keyword} <span className="opacity-50 ml-1">{kw.count}</span>
+                                {kw.keyword}<span className="opacity-60 ml-1">({kw.count})</span>
                               </span>
                             )) : (
                               <span className="text-xs text-zinc-600">No themes detected</span>
@@ -789,7 +824,7 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                     bets.long.filter(b => b.reason).map((bot) => (
                       <div 
                         key={bot.id}
-                        className="bg-zinc-900 border border-white/5 rounded-xl p-5 hover:border-[#FF5722]/30 transition-all group"
+                        className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-5 hover:border-[#FF5722]/30 hover:bg-white/[0.07] transition-all group"
                       >
                         {/* Agent Info Row */}
                         <div className="flex items-start justify-between mb-4">
@@ -864,12 +899,13 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                   {/* Stats Grid */}
                   {(() => {
                     const stats = getConfidenceStats(bets.short);
-                    const keywords = getAggregatedKeywords(bets.short);
+                    // Use AI-generated keywords, fallback to local extraction
+                    const keywords = shortKeywords.length > 0 ? shortKeywords : getAggregatedKeywords(bets.short);
                     
                     return (
                       <div className="grid grid-cols-2 gap-6 h-[120px]">
                         {/* Confidence Distribution */}
-                        <div className="bg-zinc-900/50 rounded-xl p-4 border border-white/5 h-full">
+                        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 h-full">
                           <div className="text-xs font-semibold text-zinc-400 mb-3 uppercase tracking-wider">Confidence Dist.</div>
                           <div className="space-y-2">
                             <div className="flex items-center gap-2 text-xs">
@@ -896,13 +932,16 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                           </div>
                         </div>
                         
-                        {/* Top Keywords */}
-                        <div className="bg-zinc-900/50 rounded-xl p-4 border border-white/5 h-full overflow-hidden">
-                          <div className="text-xs font-semibold text-zinc-400 mb-3 uppercase tracking-wider">Key Themes</div>
+                        {/* Top Keywords - AI Generated */}
+                        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 h-full overflow-hidden">
+                          <div className="text-xs font-semibold text-zinc-400 mb-3 uppercase tracking-wider flex items-center gap-2">
+                            Key Themes
+                            {keywordsLoading && <span className="w-3 h-3 border border-zinc-500 border-t-transparent rounded-full animate-spin" />}
+                          </div>
                           <div className="flex flex-wrap gap-2 overflow-hidden max-h-[60px]">
-                            {keywords.length > 0 ? keywords.slice(0, 5).map((kw, i) => (
+                            {keywords.length > 0 ? keywords.slice(0, 4).map((kw, i) => (
                               <span key={i} className="px-2 py-1 rounded-md bg-[#FF4D4D]/10 text-[#FF4D4D] text-xs border border-[#FF4D4D]/20">
-                                {kw.keyword} <span className="opacity-50 ml-1">{kw.count}</span>
+                                {kw.keyword}<span className="opacity-60 ml-1">({kw.count})</span>
                               </span>
                             )) : (
                               <span className="text-xs text-zinc-600">No themes detected</span>
@@ -925,7 +964,7 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                     bets.short.filter(b => b.reason).map((bot) => (
                       <div 
                         key={bot.id}
-                        className="bg-zinc-900 border border-white/5 rounded-xl p-5 hover:border-[#FF4D4D]/30 transition-all group"
+                        className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-5 hover:border-[#FF4D4D]/30 hover:bg-white/[0.07] transition-all group"
                       >
                         {/* Agent Info Row */}
                         <div className="flex items-start justify-between mb-4">

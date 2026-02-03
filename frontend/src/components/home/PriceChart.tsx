@@ -277,9 +277,9 @@ export default function PriceChart({
           <ReferenceLine 
             y={openPrice} 
             stroke="#ffffff" 
-            strokeDasharray="6 4" 
-            strokeOpacity={0.18} 
-            strokeWidth={1}
+            strokeDasharray="8 4" 
+            strokeOpacity={0.45} 
+            strokeWidth={1.5}
           />
 
           {/* Above openPrice: GREEN line + fill (price is UP = profit) */}

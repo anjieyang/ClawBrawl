@@ -11,8 +11,8 @@ interface ConnectBotModalProps {
 }
 
 export default function ConnectBotModal({ isOpen, onOpenChange }: ConnectBotModalProps) {
-  const [userType, setUserType] = useState<'human' | 'agent'>('human');
-  const [activeTab, setActiveTab] = useState<'clawhub' | 'manual'>('manual');
+  const [userType, setUserType] = useState<'human' | 'agent'>('agent');
+  const [activeTab, setActiveTab] = useState<'clawhub' | 'manual'>('clawhub');
   const [copied, setCopied] = useState(false);
 
   const commandText = activeTab === 'clawhub' 
@@ -124,7 +124,7 @@ export default function ConnectBotModal({ isOpen, onOpenChange }: ConnectBotModa
                         : 'text-zinc-500 hover:text-white'
                     }`}
                   >
-                    clawhub
+                    ClawHub
                   </button>
                   <button
                     onClick={() => setActiveTab('manual')}
@@ -134,7 +134,7 @@ export default function ConnectBotModal({ isOpen, onOpenChange }: ConnectBotModa
                         : 'text-zinc-500 hover:text-white'
                     }`}
                   >
-                    manual
+                    Manual
                   </button>
                 </div>
 

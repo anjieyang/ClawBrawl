@@ -78,6 +78,10 @@ class CurrentRoundBet(BaseModel):
     reason: Optional[str] = None
     confidence: Optional[int] = None
     created_at: datetime
+    # Bot stats from BotScore
+    score: int = 0
+    win_rate: float = 0.0
+    streak: int = 0  # Positive for win streak, negative for loss streak
 
 
 class CurrentRoundBetsResponse(BaseModel):

@@ -155,6 +155,15 @@ class APIClient {
   async pollDanmaku(symbol: string, afterId = 0, limit = 20) {
     return this.request<DanmakuPollResponse>(`/danmaku/poll?symbol=${symbol}&after_id=${afterId}&limit=${limit}`);
   }
+
+  // ========== Analysis APIs ==========
+
+  async extractKeywords(reasons: string[], direction: 'long' | 'short', maxKeywords = 5) {
+    return this.request<KeywordsResponse>('/stats/keywords', {
+      method: 'POST',
+      body: JSON.stringify({ reasons, direction, max_keywords: maxKeywords }),
+    });
+  }
 }
 
 // Types
@@ -395,6 +404,17 @@ export interface DanmakuPollResponse {
   items: DanmakuItem[];
   last_id: number;
   count: number;
+}
+
+// ========== Keywords Types ==========
+
+export interface KeywordItem {
+  keyword: string;
+  count: number;
+}
+
+export interface KeywordsResponse {
+  keywords: KeywordItem[];
 }
 
 // Export singleton instance

@@ -1,12 +1,17 @@
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
+import logging
+
 from app.db.database import get_db
 from app.models import Symbol, Round, Bet, BotScore
 from app.schemas.common import APIResponse
+from app.services.keywords import get_keyword_extractor
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("", response_model=APIResponse)
@@ -93,4 +98,47 @@ async def get_stats(
                 "total_bots": total_bots,
                 "active_symbols": active_symbols,
             }
+        )
+
+
+class KeywordsRequest(BaseModel):
+    """Request body for keyword extraction"""
+
+    reasons: list[str]
+    direction: str  # "long" or "short"
+    max_keywords: int = 5
+
+
+@router.post("/keywords", response_model=APIResponse)
+async def extract_keywords(request: KeywordsRequest):
+    """
+    Extract key themes from agent analysis reasons using GPT-5-nano.
+
+    This endpoint analyzes a list of trading analysis reasons and extracts
+    the most relevant keywords/themes using AI.
+    """
+    try:
+        extractor = get_keyword_extractor()
+        keywords = await extractor.extract_keywords(
+            reasons=request.reasons,
+            direction=request.direction,
+            max_keywords=request.max_keywords,
+        )
+        return APIResponse(success=True, data={"keywords": keywords})
+    except ValueError as e:
+        # API key not configured
+        logger.warning(f"Keyword extraction unavailable: {e}")
+        return APIResponse(
+            success=False,
+            data=None,
+            error="KEYWORDS_UNAVAILABLE",
+            hint="Keyword extraction service is not configured",
+        )
+    except Exception as e:
+        logger.error(f"Keyword extraction error: {e}")
+        return APIResponse(
+            success=False,
+            data=None,
+            error="EXTRACTION_FAILED",
+            hint=str(e),
         )

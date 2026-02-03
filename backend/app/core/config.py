@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # Market Data API
     BITGET_API_BASE: str = "https://api.bitget.com"
 
+    # OpenAI (for keyword extraction)
+    OPENAI_API_KEY: Optional[str] = None
+
     # Round Settings
     DEFAULT_ROUND_DURATION: int = 600  # 10 minutes in seconds
     BETTING_WINDOW: int = 420  # First 7 minutes of each round (in seconds)

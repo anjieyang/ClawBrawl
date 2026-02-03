@@ -183,7 +183,7 @@ export function useArenaData({ symbol, refreshInterval = 1000 }: ArenaConfig) {
       if (response.success && response.data) {
         const data = response.data;
         
-        // Transform to BotBet format
+        // Transform to BotBet format using real data from backend
         const transformBet = (bet: any, index: number): BotBet => ({
           id: bet.id,
           botId: bet.bot_id,
@@ -191,9 +191,9 @@ export function useArenaData({ symbol, refreshInterval = 1000 }: ArenaConfig) {
           avatar: bet.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${bet.bot_id}`,
           reason: bet.reason,
           confidence: bet.confidence,
-          score: 100, // Default score, would need leaderboard data for actual
-          winRate: 50, // Default
-          streak: 0,   // Default
+          score: bet.score ?? 0,
+          winRate: Math.round((bet.win_rate ?? 0) * 100), // Convert from 0.xx to percentage
+          streak: bet.streak ?? 0,
         });
 
         setBets({

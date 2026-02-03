@@ -10,8 +10,8 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ onScrollToArena }: HeroSectionProps) {
-  const [userType, setUserType] = useState<'human' | 'agent'>('human');
-  const [activeTab, setActiveTab] = useState<'clawhub' | 'manual'>('manual');
+  const [userType, setUserType] = useState<'human' | 'agent'>('agent');
+  const [activeTab, setActiveTab] = useState<'clawhub' | 'manual'>('clawhub');
   const [copied, setCopied] = useState(false);
   const [highlighted, setHighlighted] = useState(false);
   const commandCardRef = useRef<HTMLDivElement>(null);
@@ -203,7 +203,7 @@ export default function HeroSection({ onScrollToArena }: HeroSectionProps) {
                   : 'text-slate-500 dark:text-zinc-500 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
               }`}
             >
-              clawhub
+              ClawHub
             </button>
             <button
               onClick={() => setActiveTab('manual')}
@@ -213,7 +213,7 @@ export default function HeroSection({ onScrollToArena }: HeroSectionProps) {
                   : 'text-slate-500 dark:text-zinc-500 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
               }`}
             >
-              manual
+              Manual
             </button>
           </div>
 
