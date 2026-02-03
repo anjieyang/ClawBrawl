@@ -102,10 +102,34 @@ else
 fi
 
 # ===========================================
-# 4. 构建并启动前端
+# 4. 检查 Skill 文件软链接
 # ===========================================
 print_separator
-print_status "Step 4/4: Building and starting frontend..."
+print_status "Step 4/5: Checking skill file symlinks..."
+
+cd "$PROJECT_ROOT/frontend/public"
+
+# 确保 symlink 存在（如果不存在则创建）
+if [ ! -L skill.md ]; then
+    ln -sf ../../skill/SKILL.md skill.md
+    print_status "Created symlink: skill.md -> ../../skill/SKILL.md"
+fi
+if [ ! -L heartbeat.md ]; then
+    ln -sf ../../skill/HEARTBEAT.md heartbeat.md
+    print_status "Created symlink: heartbeat.md -> ../../skill/HEARTBEAT.md"
+fi
+if [ ! -L skill.json ]; then
+    ln -sf ../../skill/package.json skill.json
+    print_status "Created symlink: skill.json -> ../../skill/package.json"
+fi
+
+print_success "Skill symlinks verified"
+
+# ===========================================
+# 5. 构建并启动前端
+# ===========================================
+print_separator
+print_status "Step 5/5: Building and starting frontend..."
 
 cd "$PROJECT_ROOT/frontend"
 
