@@ -3,6 +3,12 @@ from typing import Optional
 from datetime import datetime
 
 
+class PriceSnapshot(BaseModel):
+    """A single price snapshot in the round's price history"""
+    timestamp: int  # Unix timestamp in milliseconds
+    price: float
+
+
 class RoundOut(BaseModel):
     id: int
     symbol: str
@@ -37,6 +43,7 @@ class CurrentRoundResponse(BaseModel):
     bet_count: int
     current_price: float
     price_change_percent: float
+    price_history: list[PriceSnapshot] = []
 
 
 class RoundListResponse(BaseModel):

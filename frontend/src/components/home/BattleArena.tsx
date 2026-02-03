@@ -29,6 +29,11 @@ interface RecentRound {
   shortBots: number;
 }
 
+interface PriceSnapshot {
+  timestamp: number;
+  price: number;
+}
+
 interface BattleArenaProps {
   round: {
     id: number;
@@ -37,7 +42,11 @@ interface BattleArenaProps {
     openPrice: number;
     change: number;
     remainingSeconds: number;
+    totalDurationSeconds: number;
+    priceHistory?: PriceSnapshot[];
   };
+  selectedSymbol: string;
+  onSelectSymbol: (symbol: string) => void;
   bets: {
     long: BotBet[];
     short: BotBet[];
@@ -47,10 +56,9 @@ interface BattleArenaProps {
   onScrollToLeaderboard?: () => void;
 }
 
-export default function BattleArena({ round, bets, recentRounds, totalBets = 0, onScrollToLeaderboard }: BattleArenaProps) {
+export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bets, recentRounds, totalBets = 0, onScrollToLeaderboard }: BattleArenaProps) {
   const [timeLeft, setTimeLeft] = useState(round.remainingSeconds);
   const [mounted, setMounted] = useState(false);
-  const [selectedSymbol, setSelectedSymbol] = useState("BTC/USDT");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAnalysisPanelOpen, setIsAnalysisPanelOpen] = useState(false);
   
@@ -228,7 +236,7 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
       <SymbolSearch 
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
-        onSelect={(symbol) => setSelectedSymbol(symbol)}
+        onSelect={(symbol) => onSelectSymbol(symbol)}
         currentSymbol={selectedSymbol}
       />
 
@@ -390,6 +398,8 @@ export default function BattleArena({ round, bets, recentRounds, totalBets = 0, 
                 currentPrice={currentPrice} 
                 isUp={isUp} 
                 timeLeft={timeLeft}
+                totalDurationSeconds={round.totalDurationSeconds}
+                priceHistory={round.priceHistory}
              />
 
              <div className="relative z-10 text-center">

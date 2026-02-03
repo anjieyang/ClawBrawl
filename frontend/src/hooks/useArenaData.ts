@@ -8,6 +8,11 @@ interface ArenaConfig {
   refreshInterval?: number;
 }
 
+interface PriceSnapshot {
+  timestamp: number;
+  price: number;
+}
+
 interface RoundData {
   id: number;
   symbol: string;
@@ -16,8 +21,10 @@ interface RoundData {
   openPrice: number;
   change: number;
   remainingSeconds: number;
+  totalDurationSeconds: number;
   status: string;
   betCount: number;
+  priceHistory: PriceSnapshot[];
 }
 
 interface BetData {
@@ -86,6 +93,24 @@ export function useArenaData({ symbol, refreshInterval = 1000 }: ArenaConfig) {
       
       if (response.success && response.data) {
         const data = response.data;
+        const startMs = Date.parse(data.start_time);
+        const endMs = Date.parse(data.end_time);
+        const computedDurationSeconds = Math.round((endMs - startMs) / 1000);
+        const totalDurationSeconds =
+          Number.isFinite(computedDurationSeconds) && computedDurationSeconds > 0
+            ? computedDurationSeconds
+            : 600;
+
+        if (totalDurationSeconds === 600 && (!Number.isFinite(computedDurationSeconds) || computedDurationSeconds <= 0)) {
+          console.warn('[Arena] Invalid round duration; falling back to 600s', {
+            symbol: data.symbol,
+            roundId: data.id,
+            start_time: data.start_time,
+            end_time: data.end_time,
+            computedDurationSeconds,
+          });
+        }
+
         setRound({
           id: data.id,
           symbol: data.symbol,
@@ -94,8 +119,10 @@ export function useArenaData({ symbol, refreshInterval = 1000 }: ArenaConfig) {
           openPrice: data.open_price,
           change: data.price_change_percent,
           remainingSeconds: data.remaining_seconds,
+          totalDurationSeconds,
           status: data.status,
           betCount: data.bet_count,
+          priceHistory: data.price_history || [],
         });
         setError(null);
         return true;

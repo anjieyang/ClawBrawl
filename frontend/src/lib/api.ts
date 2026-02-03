@@ -157,6 +157,11 @@ export interface SymbolListResponse {
   categories: { id: string; name: string; count: number }[];
 }
 
+export interface PriceSnapshot {
+  timestamp: number;  // Unix timestamp in milliseconds
+  price: number;
+}
+
 export interface CurrentRound {
   id: number;
   symbol: string;
@@ -171,6 +176,7 @@ export interface CurrentRound {
   bet_count: number;
   current_price: number;
   price_change_percent: number;
+  price_history: PriceSnapshot[];
 }
 
 export interface Round {

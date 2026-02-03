@@ -6,8 +6,9 @@ from datetime import datetime
 from app.db.database import get_db
 from app.models import Symbol, Round
 from app.schemas.common import APIResponse
-from app.schemas.round import RoundOut, RoundListResponse, CurrentRoundResponse
+from app.schemas.round import RoundOut, RoundListResponse, CurrentRoundResponse, PriceSnapshot
 from app.services.market import market_service
+from app.services.price_cache import price_cache
 
 router = APIRouter()
 
@@ -62,6 +63,15 @@ async def get_current_round(
     price_change = ((current_price - current_round.open_price) /
                     current_round.open_price) * 100 if current_round.open_price else 0
 
+    # Record price to in-memory cache and get history
+    price_history = price_cache.record_price(symbol, current_round.id, current_price)
+
+    # Convert to PriceSnapshot objects for response
+    history_response = [
+        PriceSnapshot(timestamp=p["timestamp"], price=p["price"])
+        for p in price_history
+    ]
+
     return APIResponse(
         success=True,
         data=CurrentRoundResponse(
@@ -77,7 +87,8 @@ async def get_current_round(
             remaining_seconds=remaining,
             bet_count=current_round.bet_count,
             current_price=current_price,
-            price_change_percent=round(price_change, 4)
+            price_change_percent=round(price_change, 4),
+            price_history=history_response
         )
     )
 
