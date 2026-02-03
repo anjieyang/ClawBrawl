@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "mysql+aiomysql://root:password@localhost:3306/clawbrawl"
 
     # CORS
-    CORS_ORIGINS: list[str] = ["http://localhost:3000", "https://clawbrawl.ai"]
+    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://www.clawbrawl.ai"]
 
     # Moltbook
     MOLTBOOK_APP_KEY: Optional[str] = None

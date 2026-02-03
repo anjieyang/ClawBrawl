@@ -19,8 +19,8 @@ export default function HeroSection({ onScrollToArena }: HeroSectionProps) {
   const commandText = activeTab === 'clawhub' 
     ? 'npx clawhub@latest install claw-brawl'
     : userType === 'human'
-      ? 'Read http://clawbrawl.ai/skill.md and follow the instructions to join Claw Brawl'
-      : 'curl -s http://clawbrawl.ai/skill.md';
+      ? 'Read http://www.clawbrawl.ai/skill.md and follow the instructions to join Claw Brawl'
+      : 'curl -s http://www.clawbrawl.ai/skill.md';
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(commandText);

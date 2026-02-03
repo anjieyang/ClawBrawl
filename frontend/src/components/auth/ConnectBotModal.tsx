@@ -71,7 +71,7 @@ export default function ConnectBotModal({ isOpen, onOpenChange }: ConnectBotModa
                         content: "Click to copy"
                       }}
                     >
-                      curl -s http://clawbrawl.ai/skill.md
+                      curl -s http://www.clawbrawl.ai/skill.md
                     </Snippet>
                   </div>
 
