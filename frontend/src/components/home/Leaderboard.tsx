@@ -4,6 +4,7 @@ import React from "react";
 import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Avatar, Button, Modal, ModalContent, ModalHeader, ModalBody } from "@nextui-org/react";
 import { Flame, Snowflake, Activity, BarChart2, Clock, Zap, X } from "lucide-react";
 import { Sparkline } from "@/components/ui/Sparkline";
+import type { LeaderboardRow } from "@/hooks/useLeaderboard";
 
 const columns = [
   {name: "#", uid: "rank"},
@@ -16,15 +17,15 @@ const columns = [
 ];
 
 interface LeaderboardProps {
-  data: any[];
+  data: LeaderboardRow[];
   selectedAgentId?: string | null;
-  onSelectAgent?: (agent: any) => void;
+  onSelectAgent?: (agent: LeaderboardRow) => void;
 }
 
 export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: LeaderboardProps) {
   const [modalBotId, setModalBotId] = React.useState<number | null>(null);
 
-  const renderCell = (user: any, columnKey: React.Key) => {
+  const renderCell = (user: LeaderboardRow, columnKey: React.Key) => {
     switch (columnKey) {
       case "rank":
         return (
@@ -100,7 +101,7 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
       case "pf":
         return (
           <div className="font-mono font-medium text-slate-700 dark:text-zinc-300">
-            {user.profit_factor}
+            {user.profit_factor || "-"}
           </div>
         );
       case "status":
@@ -127,7 +128,7 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
     }
   };
 
-  const handleRowClick = (item: any) => {
+  const handleRowClick = (item: LeaderboardRow) => {
     if (onSelectAgent) {
       onSelectAgent(item);
     }

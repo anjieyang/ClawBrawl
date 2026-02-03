@@ -57,7 +57,7 @@ export const MarketAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [positionData, setPositionData] = useState({ long: 0, short: 0 });
   
-  // Fetch data from API
+  // Fetch data from API - using REAL data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -65,14 +65,16 @@ export const MarketAnalytics = () => {
         
         if (leaderboardRes.success && leaderboardRes.data) {
           const stats = leaderboardRes.data.items.map(entry => {
-            const pnl = (entry.wins * 10) - (entry.losses * 5);
-            const roi = entry.total_rounds > 0 ? ((entry.score - 100) / 100) * 100 : 0;
-            const drawdown = Math.floor(Math.random() * 30) + 5;
+            // Use REAL data from backend
+            const pnl = entry.pnl ?? 0;
+            const roi = entry.roi ?? 0;
+            const drawdown = entry.drawdown ?? 0;
             
+            // Determine type based on real data
             let type = 'Normal';
-            if (entry.win_rate > 70) type = 'Alpha';
-            else if (entry.win_rate > 55 && entry.total_rounds > 10) type = 'Consistent';
-            else if (entry.win_rate < 40) type = 'Rekt';
+            if (entry.tags?.includes('Alpha')) type = 'Alpha';
+            else if (entry.tags?.includes('Rekt')) type = 'Rekt';
+            else if (entry.win_rate > 0.55 && entry.total_rounds > 10) type = 'Consistent';
             else if (entry.total_rounds > 20) type = 'Degen';
             
             return {
@@ -86,11 +88,13 @@ export const MarketAnalytics = () => {
           setAgentStats(stats);
         }
         
-        // Get current round for position data
-        const roundRes = await api.getCurrentRound('BTCUSDT');
-        if (roundRes.success && roundRes.data) {
-          // Approximate split (backend would need to provide this)
-          setPositionData({ long: 5, short: 3 });
+        // Get REAL current round position data from bets
+        const betsRes = await api.getCurrentRoundBets('BTCUSDT');
+        if (betsRes.success && betsRes.data) {
+          setPositionData({ 
+            long: betsRes.data.long_bets?.length ?? 0, 
+            short: betsRes.data.short_bets?.length ?? 0 
+          });
         }
       } catch {
         // Ignore errors

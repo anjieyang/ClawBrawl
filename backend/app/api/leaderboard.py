@@ -4,11 +4,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from datetime import datetime
 from app.db.database import get_db
-from app.models import Symbol, BotScore, BotSymbolStats
+from app.models import Symbol, BotScore, BotSymbolStats, Bet
 from app.schemas.common import APIResponse
 from app.schemas.leaderboard import LeaderboardEntry, LeaderboardResponse
+from app.services.leaderboard_metrics import compute_metrics_from_bets
 
 router = APIRouter()
+
+
+def _tags_from_win_rate(win_rate: float) -> list[str]:
+    if win_rate >= 0.7:
+        return ["Alpha"]
+    if 0 < win_rate <= 0.4:
+        return ["Rekt"]
+    return []
 
 
 @router.get("", response_model=APIResponse)
@@ -34,10 +43,40 @@ async def get_leaderboard(
         )
         rows = result.all()
 
-        items = []
+        items: list[LeaderboardEntry] = []
+        bot_ids = [stats.bot_id for stats, _ in rows]
+
+        # Fetch recent settled bets for these bots (per bot limit) to compute real metrics
+        recent_bets: dict[str, list[tuple[Optional[int], str]]] = {bid: [] for bid in bot_ids}
+        if bot_ids:
+            rn = func.row_number().over(
+                partition_by=Bet.bot_id, order_by=Bet.created_at.desc()
+            ).label("rn")
+            subq = (
+                select(Bet.bot_id, Bet.score_change, Bet.result, rn)
+                .where(Bet.symbol == symbol, Bet.bot_id.in_(bot_ids), Bet.result != "pending")
+                .subquery()
+            )
+            bet_rows = await db.execute(
+                select(subq.c.bot_id, subq.c.score_change, subq.c.result)
+                .where(subq.c.rn <= 80)
+                .order_by(subq.c.bot_id)
+            )
+            for bot_id, score_change, result_str in bet_rows.all():
+                recent_bets[str(bot_id)].append((score_change, str(result_str)))
+
         for i, (stats, bot_score) in enumerate(rows, 1):
             total_rounds = stats.wins + stats.losses + stats.draws
             win_rate = stats.wins / total_rounds if total_rounds > 0 else 0
+
+            metrics = compute_metrics_from_bets(
+                current_score=int(stats.score),
+                bets=recent_bets.get(stats.bot_id, []),
+            )
+
+            # Extract battle history (most recent first) - up to 80 results
+            bot_bets = recent_bets.get(stats.bot_id, [])
+            battle_history = [result for _, result in bot_bets[:80]]
 
             items.append(LeaderboardEntry(
                 rank=i,
@@ -49,7 +88,16 @@ async def get_leaderboard(
                 losses=stats.losses,
                 draws=stats.draws,
                 win_rate=round(win_rate, 2),
-                total_rounds=total_rounds
+                total_rounds=total_rounds,
+                pnl=metrics.pnl,
+                roi=metrics.roi,
+                profit_factor=metrics.profit_factor,
+                drawdown=metrics.drawdown,
+                streak=metrics.streak,
+                equity_curve=metrics.equity_curve,
+                strategy=f"{symbol} Specialist",
+                tags=_tags_from_win_rate(float(win_rate)),
+                battle_history=battle_history,
             ))
 
         return APIResponse(
@@ -72,7 +120,27 @@ async def get_leaderboard(
         )
         bots = result.scalars().all()
 
-        items = []
+        items: list[LeaderboardEntry] = []
+        bot_ids = [b.bot_id for b in bots]
+
+        recent_bets: dict[str, list[tuple[Optional[int], str]]] = {bid: [] for bid in bot_ids}
+        if bot_ids:
+            rn = func.row_number().over(
+                partition_by=Bet.bot_id, order_by=Bet.created_at.desc()
+            ).label("rn")
+            subq = (
+                select(Bet.bot_id, Bet.score_change, Bet.result, rn)
+                .where(Bet.bot_id.in_(bot_ids), Bet.result != "pending")
+                .subquery()
+            )
+            bet_rows = await db.execute(
+                select(subq.c.bot_id, subq.c.score_change, subq.c.result)
+                .where(subq.c.rn <= 80)
+                .order_by(subq.c.bot_id)
+            )
+            for bot_id, score_change, result_str in bet_rows.all():
+                recent_bets[str(bot_id)].append((score_change, str(result_str)))
+
         for i, bot in enumerate(bots, 1):
             total_rounds = bot.total_wins + bot.total_losses + bot.total_draws
             win_rate = bot.total_wins / total_rounds if total_rounds > 0 else 0
@@ -89,6 +157,15 @@ async def get_leaderboard(
             fav_row = fav_result.first()
             favorite_symbol = fav_row[0] if fav_row else None
 
+            metrics = compute_metrics_from_bets(
+                current_score=int(bot.total_score),
+                bets=recent_bets.get(bot.bot_id, []),
+            )
+
+            # Extract battle history (most recent first) - up to 80 results
+            bot_bets = recent_bets.get(bot.bot_id, [])
+            battle_history = [result for _, result in bot_bets[:80]]
+
             items.append(LeaderboardEntry(
                 rank=i,
                 bot_id=bot.bot_id,
@@ -100,7 +177,16 @@ async def get_leaderboard(
                 draws=bot.total_draws,
                 win_rate=round(win_rate, 2),
                 total_rounds=total_rounds,
-                favorite_symbol=favorite_symbol
+                favorite_symbol=favorite_symbol,
+                pnl=metrics.pnl,
+                roi=metrics.roi,
+                profit_factor=metrics.profit_factor,
+                drawdown=metrics.drawdown,
+                streak=metrics.streak,
+                equity_curve=metrics.equity_curve,
+                strategy=f"{favorite_symbol} Specialist" if favorite_symbol else "Multi-Asset",
+                tags=_tags_from_win_rate(float(win_rate)),
+                battle_history=battle_history,
             ))
 
         return APIResponse(

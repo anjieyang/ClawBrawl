@@ -2,29 +2,38 @@
 
 import { useMemo } from 'react';
 import { Avatar, Tooltip } from "@nextui-org/react";
-import { Trophy, Target, TrendingUp, Flame, Snowflake, Zap, Shield, Swords, Star } from "lucide-react";
+import { Trophy, Target, Flame, Snowflake, Zap, Shield, Swords } from "lucide-react";
 
 interface AgentProfileCardProps {
-  agent: any;
+  agent: {
+    rank?: number;
+    name?: string;
+    avatar?: string;
+    win_rate?: string;
+    win_rate_num?: number;
+    roi?: number;
+    pnl?: number;
+    wins?: number;
+    losses?: number;
+    draws?: number;
+    streak?: number;
+    strategy?: string;
+    tags?: string[];
+    battle_history?: string[];  // Real battle results from backend
+  } | null;
 }
 
-// Generate battle history data (per round, not per day)
-function generateBattleHistory(agent: any) {
-  const totalBattles = 80; // Show last 80 battles (4 rows x 20 cols)
-  const winRate = (agent.win_rate_num || 50) / 100;
-  
-  const data: Array<{ result: 'win' | 'loss'; round: number }> = [];
-  
-  for (let i = 0; i < totalBattles; i++) {
-    const roundNum = totalBattles - i;
-    const isWin = Math.random() < winRate;
-    data.push({ 
-      result: isWin ? 'win' : 'loss', 
-      round: roundNum 
-    });
+// Transform real battle history from backend
+function getBattleHistory(agent: AgentProfileCardProps['agent']) {
+  if (!agent?.battle_history || agent.battle_history.length === 0) {
+    return [];
   }
   
-  return data;
+  // battle_history is already sorted by most recent first
+  return agent.battle_history.slice(0, 80).map((result, index) => ({
+    result: result as 'win' | 'loss' | 'draw',
+    round: index + 1,
+  }));
 }
 
 // Get rarity based on rank
@@ -38,7 +47,7 @@ function getRarity(rank: number): { name: string; color: string; glow: string; b
 export default function AgentProfileCard({ agent }: AgentProfileCardProps) {
   const battleHistory = useMemo(() => {
     if (!agent) return [];
-    return generateBattleHistory(agent);
+    return getBattleHistory(agent);
   }, [agent]);
 
   if (!agent) {
@@ -51,16 +60,24 @@ export default function AgentProfileCard({ agent }: AgentProfileCardProps) {
   }
 
   const rarity = getRarity(agent.rank || 999);
-  const isPositivePnl = agent.pnl >= 0;
+  const isPositivePnl = (agent.pnl ?? 0) >= 0;
   const streak = agent.streak || 0;
-  const powerLevel = Math.min(99, Math.max(1, Math.round((agent.win_rate_num || 50) * 1.5 + (agent.wins || 0) * 0.5)));
+  const wins = agent.wins || 0;
+  const losses = agent.losses || 0;
+  const draws = agent.draws || 0;
+  const totalBattles = wins + losses + draws;
+  const winRateNum = agent.win_rate_num || (totalBattles > 0 ? Math.round((wins / totalBattles) * 100) : 0);
+  const powerLevel = Math.min(99, Math.max(1, Math.round(winRateNum * 1.5 + wins * 0.5)));
   
-  // Battle stats from history
+  // Battle stats from real history (for the grid)
   const battleStats = battleHistory.reduce((acc, d) => {
     if (d.result === 'win') acc.wins++;
-    else acc.losses++;
+    else if (d.result === 'loss') acc.losses++;
+    else acc.draws++;
     return acc;
-  }, { wins: 0, losses: 0 });
+  }, { wins: 0, losses: 0, draws: 0 });
+  
+  const historyCount = battleHistory.length;
 
   return (
     <div className={`h-full flex flex-col relative overflow-hidden rounded-2xl ${rarity.border} border-2 ${rarity.glow}`}>
@@ -161,7 +178,7 @@ export default function AgentProfileCard({ agent }: AgentProfileCardProps) {
           <div className="flex items-center gap-2 p-2.5 bg-slate-200/50 dark:bg-black/30 rounded-lg border border-slate-300/50 dark:border-white/5">
             <Target size={14} className="text-blue-500 dark:text-blue-400" />
             <div>
-              <div className="text-sm font-bold text-slate-900 dark:text-white">{agent.wins + agent.losses}</div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white">{totalBattles}</div>
               <div className="text-[8px] text-slate-500 dark:text-zinc-500 uppercase">Battles</div>
             </div>
           </div>
@@ -184,43 +201,73 @@ export default function AgentProfileCard({ agent }: AgentProfileCardProps) {
           </div>
         </div>
 
-        {/* Battle History - 4 rows x 20 cols, per round */}
+        {/* Battle History - 80 slots grid: green=win, red=loss, gray=not participated */}
         <div className="bg-slate-200/50 dark:bg-black/30 rounded-lg p-3 border border-slate-300/50 dark:border-white/5 mt-3 flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[9px] text-slate-500 dark:text-zinc-500 uppercase tracking-wider font-bold">
               Last 80 Rounds
             </span>
             <div className="flex items-center gap-1.5 text-[9px]">
-              <span className="text-[#EA4C1F] dark:text-[#FF5722] font-bold">{battleStats.wins}W</span>
+              <span className="text-emerald-500 dark:text-emerald-400 font-bold">{battleStats.wins}W</span>
               <span className="text-slate-400 dark:text-zinc-600">/</span>
-              <span className="text-[#dc2626] dark:text-[#FF4D4D] font-bold">{battleStats.losses}L</span>
+              <span className="text-red-500 dark:text-red-400 font-bold">{battleStats.losses}L</span>
             </div>
           </div>
 
-          {/* 4 rows x 20 cols grid */}
           <div className="grid gap-1 flex-1 content-center" style={{ gridTemplateColumns: 'repeat(20, 1fr)' }}>
-            {battleHistory.map((battle, index) => (
-              <Tooltip
-                key={index}
-                content={
-                  <div className="text-xs p-1">
-                    <div className="font-semibold text-slate-900 dark:text-white">Round #{battle.round}</div>
-                    <div className={battle.result === 'win' ? 'text-[#EA4C1F] dark:text-[#FF5722]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}>
-                      {battle.result === 'win' ? 'Victory' : 'Defeat'}
+            {/* Render 80 slots: actual battles + gray empty slots */}
+            {Array.from({ length: 80 }).map((_, index) => {
+              const battle = battleHistory[index];
+              const hasResult = battle !== undefined;
+              
+              if (!hasResult) {
+                // Gray slot - not participated
+                return (
+                  <Tooltip
+                    key={index}
+                    content={
+                      <div className="text-xs p-1">
+                        <div className="text-slate-500 dark:text-zinc-400">Not participated</div>
+                      </div>
+                    }
+                    classNames={{
+                      base: "bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 shadow-lg",
+                    }}
+                  >
+                    <div className="aspect-square rounded-[2px] bg-slate-300 dark:bg-zinc-700 opacity-40" />
+                  </Tooltip>
+                );
+              }
+              
+              return (
+                <Tooltip
+                  key={index}
+                  content={
+                    <div className="text-xs p-1">
+                      <div className="font-semibold text-slate-900 dark:text-white">Battle #{historyCount - index}</div>
+                      <div className={
+                        battle.result === 'win' ? 'text-emerald-500 dark:text-emerald-400' : 
+                        battle.result === 'loss' ? 'text-red-500 dark:text-red-400' :
+                        'text-amber-500 dark:text-amber-400'
+                      }>
+                        {battle.result === 'win' ? 'Victory' : battle.result === 'loss' ? 'Defeat' : 'Draw'}
+                      </div>
                     </div>
-                  </div>
-                }
-                classNames={{
-                  base: "bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 shadow-lg",
-                }}
-              >
-                <div 
-                  className={`aspect-square rounded-[2px] cursor-pointer hover:scale-105 transition-transform ${
-                    battle.result === 'win' ? 'bg-[#EA4C1F] dark:bg-[#FF5722]' : 'bg-[#dc2626] dark:bg-[#FF4D4D]'
-                  }`}
-                />
-              </Tooltip>
-            ))}
+                  }
+                  classNames={{
+                    base: "bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 shadow-lg",
+                  }}
+                >
+                  <div 
+                    className={`aspect-square rounded-[2px] cursor-pointer hover:scale-105 transition-transform ${
+                      battle.result === 'win' ? 'bg-emerald-500 dark:bg-emerald-400' : 
+                      battle.result === 'loss' ? 'bg-red-500 dark:bg-red-400' :
+                      'bg-amber-500 dark:bg-amber-400'
+                    }`}
+                  />
+                </Tooltip>
+              );
+            })}
           </div>
         </div>
       </div>

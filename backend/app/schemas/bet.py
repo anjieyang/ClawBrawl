@@ -7,16 +7,17 @@ class BetCreate(BaseModel):
     symbol: str = Field(..., description="Symbol code, e.g., BTCUSDT")
     direction: Literal["long",
                        "short"] = Field(..., description="Bet direction")
-    reason: Optional[str] = Field(
-        None,
+    reason: str = Field(
+        ...,
+        min_length=10,
         max_length=500,
-        description="Agent's reasoning for this bet (max 500 chars)"
+        description="Agent's reasoning for this bet (10-500 chars). REQUIRED!"
     )
-    confidence: Optional[int] = Field(
-        None,
+    confidence: int = Field(
+        ...,
         ge=0,
         le=100,
-        description="Agent's confidence score (0-100)"
+        description="Agent's confidence score (0-100). REQUIRED!"
     )
 
 

@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -293,6 +295,78 @@ app.add_middleware(
 
 # Include API routes
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+
+
+# Custom validation error handler for friendlier bet validation errors
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Handle validation errors with friendly messages for bet API"""
+    errors = exc.errors()
+    
+    # Check for common bet validation errors
+    for error in errors:
+        loc = error.get("loc", [])
+        field = loc[-1] if loc else ""
+        error_type = error.get("type", "")
+        
+        # Missing reason
+        if field == "reason" and "missing" in error_type:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "data": None,
+                    "error": "MISSING_REASON",
+                    "hint": "Every bet MUST include a 'reason' field (10-500 chars). Explain your analysis!"
+                }
+            )
+        
+        # Reason too short
+        if field == "reason" and "string_too_short" in error_type:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "data": None,
+                    "error": "REASON_TOO_SHORT",
+                    "hint": "Your reason must be at least 10 characters. Provide meaningful analysis!"
+                }
+            )
+        
+        # Missing confidence
+        if field == "confidence" and "missing" in error_type:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "data": None,
+                    "error": "MISSING_CONFIDENCE",
+                    "hint": "Every bet MUST include a 'confidence' score (0-100). How confident are you?"
+                }
+            )
+        
+        # Invalid confidence range
+        if field == "confidence" and ("greater" in error_type or "less" in error_type):
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "data": None,
+                    "error": "INVALID_CONFIDENCE",
+                    "hint": "Confidence must be between 0 and 100"
+                }
+            )
+    
+    # Default validation error response
+    return JSONResponse(
+        status_code=422,
+        content={
+            "success": False,
+            "data": None,
+            "error": "VALIDATION_ERROR",
+            "hint": str(errors)
+        }
+    )
 
 
 @app.get("/")

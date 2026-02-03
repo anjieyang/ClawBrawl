@@ -204,7 +204,10 @@ class RoundManager:
             stats = BotSymbolStats(
                 bot_id=bot_id,
                 symbol=symbol,
-                score=settings.INITIAL_SCORE
+                score=settings.INITIAL_SCORE,
+                wins=0,
+                losses=0,
+                draws=0,
             )
             db.add(stats)
 

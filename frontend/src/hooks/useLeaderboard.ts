@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import api, { LeaderboardEntry } from '@/lib/api';
+import api, { LeaderboardEntry, StatsResponse } from '@/lib/api';
 
 interface UseLeaderboardOptions {
   symbol?: string;
@@ -16,57 +16,66 @@ interface Stats {
   avgWinRate: string;
 }
 
-// Transform backend data to match frontend Leaderboard component expectations
-function transformLeaderboardData(entries: LeaderboardEntry[]): any[] {
-  return entries.map((entry, index) => {
-    // Generate random equity curve for visualization
-    const equityCurve = Array(20).fill(0).map((_, i) => {
-      const base = entry.score - 100;
-      const noise = (Math.random() - 0.5) * 20;
-      return base * (i / 20) + noise;
-    });
+export interface LeaderboardRow {
+  id: number;
+  bot_id: string;
+  rank: number;
+  name: string;
+  avatar: string;
+  score: number;
+  pnl: number;
+  roi: number;
+  drawdown: number;
+  profit_factor: string;
+  win_rate: string;
+  win_rate_num: number;  // Raw win rate 0-100 for calculations
+  wins: number;
+  losses: number;
+  draws: number;
+  total_rounds: number;
+  streak: number;
+  equity_curve: number[];
+  strategy: string;
+  tags: string[];
+  battle_history: string[];  // Recent results: "win", "loss", "draw"
+}
 
-    // Calculate PnL based on score
-    const pnl = (entry.wins * 10) - (entry.losses * 5);
-    const roi = entry.total_rounds > 0 ? ((entry.score - 100) / 100) * 100 : 0;
-    
-    // Calculate streak (approximate)
-    const recentWins = Math.min(entry.wins, 5);
-    const streak = Math.random() > 0.5 ? recentWins : -Math.floor(Math.random() * 3);
+function formatProfitFactor(pf: number | null | undefined): string {
+  if (pf === null) return '∞';
+  if (pf === undefined) return '-';
+  if (!Number.isFinite(pf)) return '-';
+  return pf.toFixed(2);
+}
 
-    return {
-      id: index + 1,
-      bot_id: entry.bot_id,
-      rank: entry.rank,
-      name: entry.bot_name,
-      avatar: entry.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${entry.bot_id}`,
-      score: entry.score,
-      pnl: pnl,
-      roi: Math.round(roi * 10) / 10,
-      drawdown: Math.floor(Math.random() * 30) + 5,
-      profit_factor: entry.win_rate > 0 ? (entry.win_rate / (100 - entry.win_rate) * 1.5).toFixed(2) : '0.00',
-      sharpe_ratio: (Math.random() * 2 + 0.5).toFixed(2),
-      win_rate: `${Math.round(entry.win_rate * 100)}%`,
-      wins: entry.wins,
-      losses: entry.losses,
-      draws: entry.draws,
-      total_rounds: entry.total_rounds,
-      streak: streak,
-      equity_curve: equityCurve,
-      strategy: entry.favorite_symbol ? `${entry.favorite_symbol} Specialist` : 'Multi-Asset',
-      avg_hold_time: `${Math.floor(Math.random() * 8) + 2}m`,
-      tags: entry.win_rate > 70 ? ['Alpha'] : entry.win_rate < 40 ? ['Rekt'] : [],
-      style_analysis: {
-        aggressive: Math.floor(Math.random() * 100),
-        speed: Math.floor(Math.random() * 100),
-        risk: Math.floor(Math.random() * 100),
-      },
-    };
-  });
+// Transform backend data to match Leaderboard component expectations (no mock).
+function transformLeaderboardData(entries: LeaderboardEntry[]): LeaderboardRow[] {
+  return entries.map((entry, index) => ({
+    id: index + 1,
+    bot_id: entry.bot_id,
+    rank: entry.rank,
+    name: entry.bot_name,
+    avatar: entry.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${entry.bot_id}`,
+    score: entry.score,
+    pnl: entry.pnl ?? 0,
+    roi: entry.roi ?? 0,
+    drawdown: entry.drawdown ?? 0,
+    profit_factor: formatProfitFactor(entry.profit_factor),
+    win_rate: `${Math.round(entry.win_rate * 100)}%`,
+    win_rate_num: Math.round(entry.win_rate * 100),
+    wins: entry.wins,
+    losses: entry.losses,
+    draws: entry.draws,
+    total_rounds: entry.total_rounds,
+    streak: entry.streak ?? 0,
+    equity_curve: entry.equity_curve ?? [],
+    strategy: entry.strategy ?? (entry.favorite_symbol ? `${entry.favorite_symbol} Specialist` : 'Multi-Asset'),
+    tags: entry.tags ?? [],
+    battle_history: entry.battle_history ?? [],
+  }));
 }
 
 export function useLeaderboard({ symbol, limit = 50, refreshInterval = 30000 }: UseLeaderboardOptions = {}) {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<LeaderboardRow[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalBets: '-',
     activeBots: '-',
@@ -91,18 +100,21 @@ export function useLeaderboard({ symbol, limit = 50, refreshInterval = 30000 }: 
 
         // Update stats
         if (statsRes.success && statsRes.data) {
-          const s = statsRes.data as any;
+          const s: StatsResponse = statsRes.data;
+          const avgWinRate = transformed.length
+            ? (transformed.reduce((acc, row) => acc + (row.wins + row.losses + row.draws > 0 ? row.wins / (row.wins + row.losses + row.draws) : 0), 0) / transformed.length) * 100
+            : 0;
           setStats({
             totalBets: s.total_bets || 0,
             activeBots: s.total_bots || 0,
             totalRounds: s.total_rounds || 0,
-            avgWinRate: '58.4%',
+            avgWinRate: `${avgWinRate.toFixed(1)}%`,
           });
         }
       } else {
         setError(leaderboardRes.error || 'Failed to fetch leaderboard');
       }
-    } catch (err) {
+    } catch {
       setError('Network error - backend may be offline');
     } finally {
       setLoading(false);

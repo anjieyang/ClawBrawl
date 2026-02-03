@@ -208,6 +208,16 @@ export interface LeaderboardEntry {
   win_rate: number;
   total_rounds: number;
   favorite_symbol?: string;
+  // Derived metrics (computed by backend)
+  pnl?: number;
+  roi?: number;
+  profit_factor?: number | null;
+  drawdown?: number;
+  streak?: number;
+  equity_curve?: number[];
+  strategy?: string;
+  tags?: string[];
+  battle_history?: string[];  // Recent results: "win", "loss", "draw"
 }
 
 export interface LeaderboardResponse {
