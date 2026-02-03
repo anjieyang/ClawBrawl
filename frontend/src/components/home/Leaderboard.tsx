@@ -25,6 +25,21 @@ interface LeaderboardProps {
 export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: LeaderboardProps) {
   const [modalBotId, setModalBotId] = React.useState<number | null>(null);
 
+  // Convert selectedAgentId to Set for NextUI's controlled selection
+  const selectedKeys = React.useMemo(() => {
+    return selectedAgentId ? new Set([selectedAgentId]) : new Set<string>();
+  }, [selectedAgentId]);
+
+  // Handle selection change from NextUI Table
+  const handleSelectionChange = React.useCallback((keys: "all" | Set<React.Key>) => {
+    if (keys === "all" || keys.size === 0) return;
+    const selectedKey = Array.from(keys)[0] as string;
+    const selectedItem = data.find(item => item.bot_id === selectedKey);
+    if (selectedItem && onSelectAgent) {
+      onSelectAgent(selectedItem);
+    }
+  }, [data, onSelectAgent]);
+
   const renderCell = (user: LeaderboardRow, columnKey: React.Key) => {
     switch (columnKey) {
       case "rank":
@@ -85,7 +100,7 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
         const isPositive = user.pnl >= 0;
         return (
           <div className={`font-mono font-bold text-base ${isPositive ? 'text-[#EA4C1F] dark:text-[#FF5722]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}`}>
-            {isPositive ? '+' : ''}${Math.abs(user.pnl).toLocaleString()}
+            {isPositive ? '+' : '-'}${Math.abs(user.pnl).toLocaleString()}
           </div>
         );
       case "roi":
@@ -128,24 +143,22 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
     }
   };
 
-  const handleRowClick = (item: LeaderboardRow) => {
-    if (onSelectAgent) {
-      onSelectAgent(item);
-    }
-  };
-
   return (
     <div className="fintech-card rounded-2xl overflow-hidden border border-slate-200 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-sm relative h-[500px] flex flex-col">
       <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
         <Table 
           aria-label="Leaderboard table" 
           removeWrapper
+          selectionMode="single"
+          selectionBehavior="replace"
+          selectedKeys={selectedKeys}
+          onSelectionChange={handleSelectionChange}
           classNames={{
             base: "bg-transparent min-w-[800px]",
             th: "bg-slate-100/50 dark:bg-white/5 text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider py-5 border-b border-slate-200 dark:border-white/5 sticky top-0 z-10",
             td: "py-4 border-b border-slate-200/50 dark:border-white/5 last:border-0 transition-colors cursor-pointer text-slate-900 dark:text-white",
             tbody: "divide-y divide-slate-100 dark:divide-white/5",
-            tr: "data-[selected=true]:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5"
+            tr: "hover:bg-slate-50 dark:hover:bg-white/5 data-[selected=true]:bg-[rgba(32,230,150,0.1)] data-[selected=true]:border-l-3 data-[selected=true]:border-l-[#EA4C1F]"
           }}
         >
           <TableHeader columns={columns}>
@@ -156,22 +169,14 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
             )}
           </TableHeader>
           <TableBody items={data}>
-            {(item) => {
-              const isSelected = selectedAgentId === item.bot_id;
-              return (
-                <TableRow 
-                  key={item.id} 
-                  className="cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-white/5"
-                  style={isSelected ? {
-                    backgroundColor: 'rgba(32, 230, 150, 0.1)',
-                    borderLeft: '3px solid #EA4C1F',
-                  } : undefined}
-                  onClick={() => handleRowClick(item)}
-                >
-                  {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-                </TableRow>
-              );
-            }}
+            {(item) => (
+              <TableRow 
+                key={item.bot_id}
+                className="cursor-pointer transition-colors"
+              >
+                {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>

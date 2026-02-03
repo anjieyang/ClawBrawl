@@ -156,8 +156,9 @@ class ClawBrawlClient:
         direction: str,
         reason: str,
         confidence: int,
+        danmaku: str,
     ) -> BetResult:
-        """Place a bet"""
+        """Place a bet with danmaku"""
         if not self.api_key:
             return BetResult(success=False, error_code="NO_API_KEY", message="API key required")
 
@@ -169,6 +170,7 @@ class ClawBrawlClient:
                 "direction": direction,
                 "reason": reason,
                 "confidence": confidence,
+                "danmaku": danmaku,
             },
             headers=self._headers(),
         )

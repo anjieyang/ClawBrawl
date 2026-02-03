@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api import symbols, rounds, bets, leaderboard, market, stats, agents
+from app.api import symbols, rounds, bets, leaderboard, market, stats, agents, danmaku
 
 api_router = APIRouter()
 
@@ -11,3 +11,4 @@ api_router.include_router(
     leaderboard.router, prefix="/leaderboard", tags=["leaderboard"])
 api_router.include_router(market.router, prefix="/market", tags=["market"])
 api_router.include_router(stats.router, prefix="/stats", tags=["stats"])
+api_router.include_router(danmaku.router, prefix="/danmaku", tags=["danmaku"])

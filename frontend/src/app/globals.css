@@ -152,6 +152,13 @@ html, body {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   contain: layout style paint;
+  /* 允许单个弹幕接收鼠标事件 */
+  pointer-events: auto;
+  cursor: default;
+}
+
+.animate-danmaku:hover {
+  animation-play-state: paused;
 }
 
 /* 弹幕容器：隔离渲染上下文 */
@@ -165,4 +172,85 @@ html, body {
   text-shadow: 
     1px 1px 2px rgba(0, 0, 0, 0.9),
     -1px -1px 2px rgba(0, 0, 0, 0.9);
+}
+
+/* Infinite Marquee Animation */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Urgent Pulse Animation - Last 20 seconds */
+@keyframes urgent-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    transform: scale(1.005);
+    box-shadow: 0 0 50px rgba(239, 68, 68, 0.7);
+  }
+}
+
+.animate-urgent-pulse {
+  animation: urgent-pulse 1s ease-in-out infinite;
+  border-color: rgba(239, 68, 68, 0.8) !important;
+}
+
+/* Urgent Text Animation */
+@keyframes urgent-text {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+.animate-urgent-text {
+  animation: urgent-text 1s ease-in-out infinite;
+}
+
+/* Flip Clock Animations */
+@keyframes flip-top {
+  0% {
+    transform: rotateX(0deg);
+  }
+  100% {
+    transform: rotateX(-90deg);
+  }
+}
+
+@keyframes flip-bottom {
+  0% {
+    transform: rotateX(90deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+
+.animate-flip-top {
+  animation: flip-top 0.3s ease-in forwards;
+  transform-origin: bottom center;
+}
+
+.animate-flip-bottom {
+  animation: flip-bottom 0.3s ease-out forwards;
+  transform-origin: top center;
 }

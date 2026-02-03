@@ -5,6 +5,7 @@ from typing import Optional
 from datetime import datetime
 from app.db.database import get_db
 from app.models import Symbol, Round, Bet, BotScore, BotSymbolStats
+from app.models.danmaku import Danmaku
 from app.schemas.common import APIResponse
 from app.schemas.bet import (
     BetCreate, BetOut, BetListResponse, BetResponse,
@@ -100,6 +101,17 @@ async def place_bet(
         result="pending"
     )
     db.add(bet)
+
+    # Create danmaku (弹幕) along with bet
+    danmaku = Danmaku(
+        round_id=round.id,
+        symbol=round.symbol,
+        user_id=bot.bot_id,
+        nickname=bot.bot_name,
+        content=bet_data.danmaku,
+        color=None,  # 可以根据 direction 设置颜色
+    )
+    db.add(danmaku)
 
     # Update round bet count
     round.bet_count += 1

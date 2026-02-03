@@ -1,11 +1,13 @@
 'use client'
 
 import { Avatar, Tooltip, Modal, ModalContent, ModalHeader, ModalBody } from "@nextui-org/react";
-import { TrendingUp, TrendingDown, Clock, Target, ArrowUp, ArrowDown, Wallet, Activity, Flame, Skull, MessageSquareText, X, Trophy, ChevronDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Target, ArrowUp, ArrowDown, Wallet, Activity, Flame, Skull, MessageSquareText, X, Trophy, ChevronDown } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import PriceChart from "@/components/home/PriceChart";
 import SymbolSearch from "@/components/home/SymbolSearch";
+import FlipClock from "@/components/ui/FlipClock";
 
 interface BotBet {
   id: number;
@@ -64,6 +66,10 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
   
   // Simulated live price that updates every second
   const [currentPrice, setCurrentPrice] = useState(round.price);
+  
+  // Track price direction and flash animation
+  const [priceDirection, setPriceDirection] = useState<'up' | 'down'>('up');
+  const [priceFlash, setPriceFlash] = useState(false);
   
   // Calculate prize pool based on actual total bets (each bet contributes to the pool)
   const prizePool = totalBets * 10; // 10 PTS per bet
@@ -179,12 +185,31 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
         setCurrentPrice((prev: number) => {
           const volatility = prev * 0.0001; // 0.01% max change per second
           const delta = (Math.random() - 0.5) * 2 * volatility;
-          return prev + delta;
+          const newPrice = prev + delta;
+          
+          // Trigger flash animation and update direction on price change
+          if (newPrice > prev) {
+            setPriceDirection('up');
+            setPriceFlash(true);
+          } else if (newPrice < prev) {
+            setPriceDirection('down');
+            setPriceFlash(true);
+          }
+          
+          return newPrice;
         });
       }
     }, 1000);
     return () => clearInterval(timer);
   }, [isWaitingForNewRound]);
+
+  // Clear price flash (scale effect) after short delay - color stays
+  useEffect(() => {
+    if (priceFlash) {
+      const timer = setTimeout(() => setPriceFlash(false), 150);
+      return () => clearTimeout(timer);
+    }
+  }, [priceFlash]);
 
   // Keyboard shortcut: Cmd+K / Ctrl+K to open search
   useEffect(() => {
@@ -197,12 +222,6 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
 
   // Smart price formatter: adapts decimal places based on price magnitude
   const formatPrice = (price: number): string => {
@@ -226,6 +245,9 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
   const isUp = priceChange >= 0;
   const totalBots = bets.long.length + bets.short.length;
   const longPercentage = totalBots > 0 ? Math.round((bets.long.length / totalBots) * 100) : 50;
+  
+  // Urgent mode: last 20 seconds
+  const isUrgent = timeLeft <= 20 && timeLeft > 0 && !isWaitingForNewRound;
 
   if (!mounted) return null;
 
@@ -241,17 +263,29 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
       />
 
       {/* 1. Top HUD - Interactive Symbol Selector */}
-      <div className="flex justify-between items-end px-2">
+      <div className="relative flex justify-between items-center px-2">
+        {/* Left: Symbol Selector */}
         <button 
           onClick={() => setIsSearchOpen(true)}
-          className="flex flex-col gap-1 group text-left"
+          className="flex flex-col gap-1 group text-left z-10"
         >
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight group-hover:text-slate-700 dark:group-hover:text-zinc-200 transition-colors flex items-center gap-2 cursor-pointer">
             {selectedSymbol} <span className="text-slate-500 dark:text-zinc-500 font-normal group-hover:text-slate-400 dark:group-hover:text-zinc-400 transition-colors">Perpetual ↓</span>
           </h1>
         </button>
         
-        <div className="flex items-center gap-3">
+        {/* Center: Flip Clock - Absolutely positioned for true center */}
+        <div className="absolute left-1/2 -translate-x-1/2">
+          <FlipClock 
+            minutes={Math.floor(timeLeft / 60)}
+            seconds={timeLeft % 60}
+            isUrgent={isUrgent}
+            isWaiting={isWaitingForNewRound}
+          />
+        </div>
+        
+        {/* Right: Stats */}
+        <div className="flex items-center gap-3 z-10">
           {/* Analysis Panel Button */}
           {agentsWithReasons > 0 && (
             <button
@@ -275,13 +309,6 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
               <Target size={14} className="text-slate-400 dark:text-zinc-500" />
               <span className="text-slate-900 dark:text-white font-medium">{totalBots}</span> <span className="hidden sm:inline">Agents</span>
             </div>
-            <div className="w-px h-3 bg-slate-300 dark:bg-white/10" />
-            <div className="flex items-center gap-2">
-              <Clock size={14} className={isWaitingForNewRound ? "text-yellow-500 animate-pulse" : "text-slate-400 dark:text-zinc-500"} />
-              <span className={`font-mono font-medium ${isWaitingForNewRound ? "text-yellow-600 dark:text-yellow-500 animate-pulse" : "text-slate-900 dark:text-white"}`}>
-                {isWaitingForNewRound ? "Settling..." : formatTime(timeLeft)}
-              </span>
-            </div>
           </div>
         </div>
       </div>
@@ -290,21 +317,23 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
       <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-6 min-h-0">
         
         {/* LEFT CARD: LONG POSITIONS */}
-          <div className="md:col-span-3 fintech-card rounded-3xl p-6 flex flex-col h-full relative overflow-hidden group bg-white/60 dark:bg-black/20">
+          <div className={`md:col-span-3 fintech-card rounded-3xl p-6 flex flex-col h-full relative overflow-hidden group bg-white/60 dark:bg-black/20 transition-all duration-300 ${
+            isUrgent ? 'border-red-500/80 shadow-[0_0_30px_rgba(239,68,68,0.4)] animate-urgent-pulse' : ''
+          }`}>
             <div className="flex justify-between items-start mb-6 z-10">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="p-1.5 rounded-md bg-[#EA4C1F]/10 dark:bg-[#FF5722]/10 text-[#EA4C1F] dark:text-[#FF5722]">
+                  <div className="p-1.5 rounded-md bg-[#22C55E]/10 text-[#22C55E]">
                     <ArrowUp size={16} strokeWidth={3} />
                   </div>
-                  <span className="text-[#EA4C1F] dark:text-[#FF5722] font-bold tracking-wide">LONG</span>
+                  <span className="text-[#22C55E] font-bold tracking-wide">LONG</span>
                 </div>
                 <p className="text-slate-500 dark:text-zinc-500 text-xs">Bullish Faction</p>
               </div>
               <div className="text-right">
                  <span className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{longPercentage}%</span>
-                 <div className="h-1 w-12 bg-[#EA4C1F]/30 dark:bg-[#FF5722]/30 rounded-full ml-auto mt-1 overflow-hidden">
-                   <div className="h-full bg-[#EA4C1F] dark:bg-[#FF5722]" style={{width: `${longPercentage}%`}} />
+                 <div className="h-1 w-12 bg-[#22C55E]/30 rounded-full ml-auto mt-1 overflow-hidden">
+                   <div className="h-full bg-[#22C55E]" style={{width: `${longPercentage}%`}} />
                  </div>
               </div>
             </div>
@@ -328,7 +357,7 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                           <p className="font-medium text-sm text-slate-700 dark:text-zinc-200 truncate">{bot.name}</p>
                           <div className="flex items-center gap-2">
                              <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono bg-slate-200/50 dark:bg-white/5 px-1.5 rounded">Rank #{i + 1}</span>
-                             <span className={`text-[10px] font-mono ${(winRate || 0) > 60 ? 'text-[#EA4C1F] dark:text-[#FF5722]' : 'text-slate-400 dark:text-zinc-500'}`}>{winRate}% WR</span>
+                             <span className={`text-[10px] font-mono ${(winRate || 0) > 60 ? 'text-[#22C55E]' : 'text-slate-400 dark:text-zinc-500'}`}>{winRate}% WR</span>
                           </div>
                         </div>
                       </div>
@@ -348,7 +377,7 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                           content: "bg-zinc-900 border border-white/10 shadow-xl"
                         }}
                       >
-                        <div className="mb-2 px-2 py-1.5 bg-[#FF5722]/5 border-l-2 border-[#FF5722]/30 rounded-r cursor-help">
+                        <div className="mb-2 px-2 py-1.5 bg-[#22C55E]/5 border-l-2 border-[#22C55E]/30 rounded-r cursor-help">
                           <p className="text-[11px] text-zinc-300 italic line-clamp-2">"{bot.reason}"</p>
                         </div>
                       </Tooltip>
@@ -373,7 +402,7 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                       </div>
                       <div className="text-right">
                         <Tooltip content="Current Season Score" closeDelay={0}>
-                          <span className="text-xs font-mono font-bold text-[#FF5722] cursor-help">
+                          <span className="text-xs font-mono font-bold text-[#22C55E] cursor-help">
                             {bot.score} <span className="text-[10px] opacity-60 font-normal text-white">PTS</span>
                           </span>
                         </Tooltip>
@@ -385,12 +414,15 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
             </AnimatePresence>
           </div>
           
-          <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#FF5722]/5 to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#22C55E]/5 to-transparent pointer-events-none" />
         </div>
 
         {/* CENTER CARD: PRICE ACTION */}
-        <div className="md:col-span-6 flex flex-col gap-6">
-          <div className="flex-1 fintech-card rounded-3xl p-10 flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="md:col-span-6 flex flex-col">
+          {/* Price Card */}
+          <div className={`flex-1 fintech-card rounded-3xl p-10 flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300 ${
+            isUrgent ? 'border-red-500/80 shadow-[0_0_40px_rgba(239,68,68,0.5)] animate-urgent-pulse' : ''
+          }`}>
              
              {/* --- DYNAMIC PRICE CHART --- */}
              <PriceChart 
@@ -402,9 +434,24 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                 priceHistory={round.priceHistory}
              />
 
+             {/* Final Countdown Warning - Inside price card */}
+             {isUrgent && !isWaitingForNewRound && (
+               <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20">
+                 <span className="text-sm text-red-400 animate-pulse uppercase tracking-wider font-bold">
+                   Final Countdown!
+                 </span>
+               </div>
+             )}
+
              <div className="relative z-10 text-center">
                 <p className="text-zinc-500 font-medium mb-4 tracking-wide uppercase text-sm">Mark Price</p>
-                <h1 className="text-7xl md:text-8xl font-bold text-white tracking-tighter tabular-nums mb-4 drop-shadow-2xl">
+                <h1 
+                  className={`text-7xl md:text-8xl font-bold tracking-tighter tabular-nums mb-4 drop-shadow-2xl transition-all duration-150 ${
+                    priceDirection === 'up' ? 'text-[#22C55E]' : 'text-[#EF4444]'
+                  } ${
+                    priceFlash ? (priceDirection === 'up' ? 'scale-[1.02]' : 'scale-[0.98]') : 'scale-100'
+                  }`}
+                >
                   {formatPrice(currentPrice)}
                 </h1>
                 
@@ -438,22 +485,13 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                 </div>
              </div>
 
-             {/* Sentiment Bar */}
-             <div className="w-full max-w-lg mt-12 relative z-10">
-                <div className="flex justify-between text-xs font-medium text-zinc-500 mb-3 uppercase tracking-wider">
-                   <span>Long Volume</span>
-                   <span>Short Volume</span>
-                </div>
-                <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden flex">
-                   <div className="h-full bg-[#FF5722] transition-all duration-500 shadow-[0_0_10px_#FF5722]" style={{ width: `${longPercentage}%` }} />
-                   <div className="h-full bg-[#FF4D4D] transition-all duration-500 shadow-[0_0_10px_#FF4D4D]" style={{ width: `${100 - longPercentage}%` }} />
-                </div>
-             </div>
           </div>
         </div>
 
         {/* RIGHT CARD: SHORT POSITIONS */}
-        <div className="md:col-span-3 fintech-card rounded-3xl p-6 flex flex-col h-full relative overflow-hidden group">
+        <div className={`md:col-span-3 fintech-card rounded-3xl p-6 flex flex-col h-full relative overflow-hidden group transition-all duration-300 ${
+          isUrgent ? 'border-red-500/80 shadow-[0_0_30px_rgba(239,68,68,0.4)] animate-urgent-pulse' : ''
+        }`}>
           <div className="flex justify-between items-start mb-6 z-10">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -473,16 +511,23 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-2 pl-2 scrollbar-hide z-10">
-            <AnimatePresence>
+            <AnimatePresence mode="popLayout">
               {bets.short.map((bot, i) => {
                 const { winRate, streak } = bot;
                 const isStreak = (streak || 0) >= 3;
                 return (
                   <motion.div 
                     key={bot.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
+                    layout
+                    initial={{ opacity: 0, y: -60, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                    transition={{ 
+                      type: "spring", 
+                      stiffness: 500, 
+                      damping: 30,
+                      mass: 1
+                    }}
                     className="p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group/item"
                   >
                     <div className="flex flex-row-reverse items-center gap-3 mb-2">
@@ -552,30 +597,53 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
         </div>
       </div>
 
-      {/* 3. Bottom Ticker - Recent Rounds Results */}
+      {/* 3. Bottom Ticker - Recent Rounds Results (Infinite Marquee) */}
       <div className="h-14 fintech-card rounded-2xl flex items-center px-6 gap-6 overflow-hidden">
         <div className="flex items-center gap-2 text-[#FFB800]">
             <Activity size={16} className="animate-pulse" />
             <span className="text-xs font-bold uppercase tracking-widest whitespace-nowrap">Recent Results</span>
         </div>
         <div className="w-px h-4 bg-white/10" />
-        <div className="flex gap-8 overflow-x-auto scrollbar-hide items-center mask-linear-gradient flex-1">
+        <div className="flex-1 overflow-hidden relative">
            {recentRounds.length > 0 ? (
-             recentRounds.slice(0, 5).map((r) => (
-               <div key={r.id} className="flex items-center gap-2 text-sm whitespace-nowrap">
-                  <span className="text-zinc-500 font-mono text-xs">#{r.id}</span>
-                  <span className={r.result === 'up' ? 'text-[#FF5722]' : 'text-[#FF4D4D]'}>
-                    {r.result === 'up' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                  </span>
-                  <span className={`font-mono font-bold ${r.result === 'up' ? 'text-[#FF5722]' : 'text-[#FF4D4D]'}`}>
-                    {r.change >= 0 ? '+' : ''}{r.change.toFixed(2)}%
-                  </span>
-                  <span className="text-zinc-600">•</span>
-                  <span className="text-zinc-400 text-xs">
-                    {r.longBots}L / {r.shortBots}S
-                  </span>
+             <div className="flex animate-marquee">
+               {/* First copy */}
+               <div className="flex gap-8 items-center shrink-0 pr-8">
+                 {recentRounds.map((r) => (
+                   <div key={`a-${r.id}`} className="flex items-center gap-2 text-sm whitespace-nowrap">
+                      <span className="text-zinc-500 font-mono text-xs">#{r.id}</span>
+                      <span className={r.result === 'up' ? 'text-[#22C55E]' : 'text-[#EF4444]'}>
+                        {r.result === 'up' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                      </span>
+                      <span className={`font-mono font-bold ${r.result === 'up' ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+                        {r.change >= 0 ? '+' : ''}{r.change.toFixed(2)}%
+                      </span>
+                      <span className="text-zinc-600">•</span>
+                      <span className="text-zinc-400 text-xs">
+                        {r.longBots}L / {r.shortBots}S
+                      </span>
+                   </div>
+                 ))}
                </div>
-             ))
+               {/* Second copy for seamless loop */}
+               <div className="flex gap-8 items-center shrink-0 pr-8">
+                 {recentRounds.map((r) => (
+                   <div key={`b-${r.id}`} className="flex items-center gap-2 text-sm whitespace-nowrap">
+                      <span className="text-zinc-500 font-mono text-xs">#{r.id}</span>
+                      <span className={r.result === 'up' ? 'text-[#22C55E]' : 'text-[#EF4444]'}>
+                        {r.result === 'up' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                      </span>
+                      <span className={`font-mono font-bold ${r.result === 'up' ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+                        {r.change >= 0 ? '+' : ''}{r.change.toFixed(2)}%
+                      </span>
+                      <span className="text-zinc-600">•</span>
+                      <span className="text-zinc-400 text-xs">
+                        {r.longBots}L / {r.shortBots}S
+                      </span>
+                   </div>
+                 ))}
+               </div>
+             </div>
            ) : (
              <div className="flex items-center gap-2 text-sm text-zinc-500">
                <span>No completed rounds yet</span>
@@ -600,9 +668,9 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
       </div>
 
       {/* Analysis Panel Modal */}
-      {/* Analysis Panel - Review Style Modal */}
-      {isAnalysisPanelOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Analysis Panel - Review Style Modal (rendered via Portal to escape stacking context) */}
+      {isAnalysisPanelOpen && mounted && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
           {/* Backdrop */}
           <div 
             className="absolute inset-0 bg-black/80 backdrop-blur-md"
@@ -905,7 +973,8 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

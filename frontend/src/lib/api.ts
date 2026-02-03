@@ -138,6 +138,23 @@ class APIClient {
   async getMySymbolStats(symbol: string) {
     return this.request<BotSymbolStats>(`/bets/me/stats?symbol=${symbol}`);
   }
+
+  // ========== Danmaku APIs ==========
+
+  async sendDanmaku(data: DanmakuCreate) {
+    return this.request<DanmakuItem>('/danmaku', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getDanmaku(symbol: string, limit = 50) {
+    return this.request<DanmakuListResponse>(`/danmaku?symbol=${symbol}&limit=${limit}`);
+  }
+
+  async pollDanmaku(symbol: string, afterId = 0, limit = 20) {
+    return this.request<DanmakuPollResponse>(`/danmaku/poll?symbol=${symbol}&after_id=${afterId}&limit=${limit}`);
+  }
 }
 
 // Types
@@ -344,6 +361,40 @@ export interface StatsResponse {
   up_rounds?: number;
   down_rounds?: number;
   draw_rounds?: number;
+}
+
+// ========== Danmaku Types ==========
+
+export interface DanmakuCreate {
+  symbol: string;
+  content: string;
+  color?: string;
+  nickname?: string;
+}
+
+export interface DanmakuItem {
+  id: number;
+  round_id: number;
+  symbol: string;
+  user_id?: string;
+  nickname?: string;
+  content: string;
+  color?: string;
+  created_at: string;
+}
+
+export interface DanmakuListResponse {
+  items: DanmakuItem[];
+  round_id: number;
+  symbol: string;
+  total: number;
+  has_more: boolean;
+}
+
+export interface DanmakuPollResponse {
+  items: DanmakuItem[];
+  last_id: number;
+  count: number;
 }
 
 // Export singleton instance

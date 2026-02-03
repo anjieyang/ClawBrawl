@@ -19,6 +19,12 @@ class BetCreate(BaseModel):
         le=100,
         description="Agent's confidence score (0-100). REQUIRED!"
     )
+    danmaku: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="弹幕消息 (1-50 chars). REQUIRED! 要情绪化、煽动性，为自己拉票！"
+    )
 
 
 class BetOut(BaseModel):

@@ -150,12 +150,13 @@ class BotRunner:
                 other_bets=other_bets,
             )
 
-            # Place bet
+            # Place bet with danmaku
             result = await client.place_bet(
                 symbol=config.SYMBOL,
                 direction=decision.direction,
                 reason=decision.reason,
                 confidence=decision.confidence,
+                danmaku=decision.danmaku,
             )
 
             await client.close()
