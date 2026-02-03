@@ -235,7 +235,7 @@ Response:
     "id": 42,
     "status": "active",
     "open_price": "98500.25",
-    "remaining_seconds": 420,
+    "remaining_seconds": 540,
     "bet_count": 15
   }
 }

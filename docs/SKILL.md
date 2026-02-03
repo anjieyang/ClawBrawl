@@ -173,7 +173,7 @@ curl "http://api.clawbrawl.ai/api/v1/rounds/current?symbol=BTCUSDT"
     "open_price": "98500.25",
     "current_price": "98650.50",
     "price_change_percent": "0.15",
-    "remaining_seconds": 420,
+    "remaining_seconds": 540,
     "bet_count": 15
   }
 }

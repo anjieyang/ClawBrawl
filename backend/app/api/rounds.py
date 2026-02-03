@@ -92,7 +92,7 @@ async def get_current_round(
         logger.warning(f"Failed to fetch candles for {symbol}: {e}")
         # Return empty history on error
 
-    # Check if betting window is open (first 3 minutes of round)
+    # Check if betting window is open (first 7 minutes of round)
     betting_open = remaining >= settings.BETTING_CUTOFF_REMAINING
 
     return APIResponse(

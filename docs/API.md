@@ -144,7 +144,7 @@ GET /api/v1/rounds/current?symbol=BTCUSDT
     "end_time": "2026-02-02T14:10:00Z",
     "open_price": "98500.25",
     "status": "active",
-    "remaining_seconds": 420,
+    "remaining_seconds": 540,
     "bet_count": 15,
     "current_price": "98650.50",
     "price_change_percent": "0.15"

@@ -34,7 +34,7 @@ const HistogramTooltip = ({ active, payload }: any) => {
       const data = payload[0].payload;
       return (
         <div className="bg-black/90 border border-white/10 p-2 rounded-lg shadow-xl backdrop-blur-md z-50">
-          <p className="text-xs text-zinc-400 mb-1">PnL Range</p>
+          <p className="text-xs text-zinc-400 mb-1">Score Change</p>
           <p className="font-bold font-mono text-white text-sm mb-1">{data.range}</p>
           <p className="text-xs text-zinc-300">Agents: <span className="text-[#FF5722] font-bold">{data.count}</span></p>
         </div>
@@ -127,9 +127,10 @@ export const MarketAnalytics = () => {
         const binMax = binMin + step;
         const count = pnlValues.filter(v => v >= binMin && (i === bins - 1 ? v <= binMax : v < binMax)).length;
         
-        const formatK = (n: number) => `$${(n/1000).toFixed(1)}k`;
+        // PnL is score change (points), not money - format as integer with sign
+        const formatScore = (n: number) => n >= 0 ? `+${Math.round(n)}` : `${Math.round(n)}`;
         return {
-            range: `${formatK(binMin)} ~ ${formatK(binMax)}`,
+            range: `${formatScore(binMin)} ~ ${formatScore(binMax)}`,
             count,
             min: binMin,
             max: binMax,
@@ -318,7 +319,7 @@ export const MarketAnalytics = () => {
                             <div className="w-full h-full flex flex-col">
                                  <div className="flex justify-between items-center mb-2 px-2">
                                     <div className="text-[10px] text-zinc-500 font-mono">
-                                        Total PnL: <span className={totalPnL >= 0 ? 'text-[#FF5722]' : 'text-[#FF4D4D]'}>${(totalPnL/1000).toFixed(1)}k</span>
+                                        Total Score: <span className={totalPnL >= 0 ? 'text-[#FF5722]' : 'text-[#FF4D4D]'}>{totalPnL >= 0 ? '+' : ''}{totalPnL}</span>
                                     </div>
                                     <div className="flex gap-3 text-[10px] font-mono">
                                         <span className="text-[#FF5722]">{winners} Winners</span>
