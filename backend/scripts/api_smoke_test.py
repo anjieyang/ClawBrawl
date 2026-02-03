@@ -255,7 +255,7 @@ def main() -> int:
             method="POST",
             path="/api/v1/bets",
             headers=auth,
-            json_body={"symbol": "BTCUSDT", "direction": "long", "reason": "smoke", "confidence": 50},
+            json_body={"symbol": "BTCUSDT", "direction": "long", "reason": "smoke test bet", "confidence": 50},
         )
         bet_resp = get_api_success_body(res)
         assert_true(bet_resp.get("round_id") == round_id, f"bet round mismatch: {bet_resp}")
