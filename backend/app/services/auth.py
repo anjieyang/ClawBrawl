@@ -1,9 +1,15 @@
+import logging
 import secrets
 import hashlib
 from typing import Optional
-from fastapi import HTTPException, Header
+from fastapi import HTTPException, Header, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
+from app.db.database import get_db
+
+logger = logging.getLogger(__name__)
 
 
 class BotIdentity:
@@ -51,16 +57,9 @@ async def verify_api_key(api_key: str) -> BotIdentity:
             avatar_url="https://api.dicebear.com/7.x/bottts/svg?seed=dev"
         )
 
-    # Accept claw_ prefixed API keys
+    # claw_ tokens must be registered and looked up in DB (handled in get_current_bot)
     if api_key.startswith("claw_"):
-        # In production, lookup the hashed key in database
-        # For now, extract a stable ID from the key
-        key_hash = hashlib.md5(api_key.encode()).hexdigest()[:12]
-        return BotIdentity(
-            bot_id=f"bot_{key_hash}",
-            bot_name=f"Agent_{key_hash[:6]}",
-            avatar_url=f"https://api.dicebear.com/7.x/bottts/svg?seed={key_hash}"
-        )
+        raise HTTPException(status_code=401, detail="INVALID_TOKEN")
 
     raise HTTPException(status_code=401, detail="Invalid API key format")
 
@@ -70,10 +69,11 @@ security = HTTPBearer(auto_error=False)
 
 
 async def get_current_bot(
-    credentials: Optional[HTTPAuthorizationCredentials] = None,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     authorization: Optional[str] = Header(None, alias="Authorization"),
     x_moltbook_identity: Optional[str] = Header(
-        None, alias="X-Moltbook-Identity")
+        None, alias="X-Moltbook-Identity"),
+    db: AsyncSession = Depends(get_db)
 ) -> BotIdentity:
     """
     FastAPI dependency to get current authenticated bot.
@@ -82,14 +82,21 @@ async def get_current_bot(
     1. Authorization: Bearer <api_key> (preferred)
     2. X-Moltbook-Identity: <token> (legacy compatibility)
     """
+    # Import here to avoid circular imports
+    from app.models import BotScore
+
     api_key = None
 
-    # Method 1: Bearer token from Authorization header
+    # Method 1: Authorization header (manual parsing, supports non-Bearer too)
     if authorization:
         if authorization.startswith("Bearer "):
             api_key = authorization[7:]  # Remove "Bearer " prefix
         else:
             api_key = authorization
+
+    # Method 1b: Standard HTTPBearer dependency
+    if not api_key and credentials and credentials.credentials:
+        api_key = credentials.credentials
 
     # Method 2: Legacy X-Moltbook-Identity header
     if not api_key and x_moltbook_identity:
@@ -100,5 +107,26 @@ async def get_current_bot(
             status_code=401,
             detail="Missing authentication. Use 'Authorization: Bearer <api_key>' header"
         )
+
+    # For claw_ API keys, lookup in database first to get registered identity
+    if api_key.startswith("claw_"):
+        api_key_hash = hash_api_key(api_key)
+        result = await db.execute(
+            select(BotScore).where(BotScore.api_key_hash == api_key_hash)
+        )
+        bot_score = result.scalar_one_or_none()
+
+        if bot_score:
+            # Return registered identity from database
+            return BotIdentity(
+                bot_id=bot_score.bot_id,
+                bot_name=bot_score.bot_name,
+                avatar_url=bot_score.avatar_url
+            )
+        logger.warning(
+            "Rejected unregistered claw_ API key",
+            extra={"api_key_hash_prefix": api_key_hash[:16]},
+        )
+        raise HTTPException(status_code=401, detail="INVALID_TOKEN")
 
     return await verify_api_key(api_key)

@@ -174,7 +174,7 @@ export default function ConnectBotModal({ isOpen, onOpenChange }: ConnectBotModa
                       <span className="text-xs text-zinc-500">
                         {userType === 'human' ? 'Your agent will guide you' : 'Requires API key'}
                       </span>
-                      <Link href="http://api.clawbrawl.ai/docs" size="sm" showAnchorIcon className="text-xs text-[#FF5722]">
+                      <Link href="http://api.clawbrawl.ai/api/v1/docs" size="sm" showAnchorIcon className="text-xs text-[#FF5722]">
                         View API Docs
                       </Link>
                     </div>

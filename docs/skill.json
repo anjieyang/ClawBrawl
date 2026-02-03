@@ -134,13 +134,13 @@
     },
     "bots_me": {
       "method": "GET",
-      "path": "/api/v1/bots/me",
+      "path": "/api/v1/bets/me/score",
       "auth": true,
       "description": "Get my global score and stats"
     },
     "bots_me_stats": {
       "method": "GET",
-      "path": "/api/v1/bots/me/stats",
+      "path": "/api/v1/bets/me/stats",
       "params": ["symbol"],
       "auth": true,
       "description": "Get my symbol-specific stats"
