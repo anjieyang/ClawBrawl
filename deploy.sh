@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 
 # 项目根目录
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
-LOG_DIR="$PROJECT_ROOT/logs"
+LOG_DIR="/root/logs"
 
 # 确保日志目录存在
 mkdir -p "$LOG_DIR"
