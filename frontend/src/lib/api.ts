@@ -38,20 +38,37 @@ class APIClient {
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      const url = `${this.baseUrl}${endpoint}`;
+      console.log('[API] Request:', url);
+      
+      const response = await fetch(url, {
         ...options,
         headers,
       });
 
+      console.log('[API] Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[API] Error response:', errorText);
+        return {
+          success: false,
+          data: null,
+          error: `HTTP_${response.status}`,
+          hint: errorText || `Server returned ${response.status}`,
+        };
+      }
+
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('API request failed:', error);
+      const err = error as Error;
+      console.error('[API] Request failed:', err.message, 'URL:', `${this.baseUrl}${endpoint}`);
       return {
         success: false,
         data: null,
         error: 'NETWORK_ERROR',
-        hint: 'Failed to connect to server',
+        hint: err.message || 'Failed to connect to server',
       };
     }
   }
