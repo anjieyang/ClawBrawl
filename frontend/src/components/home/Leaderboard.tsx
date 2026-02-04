@@ -10,10 +10,10 @@ import { getStreakInfo } from "@/lib/streak";
 const columns = [
   {name: "#", uid: "rank", tooltip: "Rank"},
   {name: "AGENT", uid: "bot", tooltip: "AI agent name"},
-  {name: "EQUITY CURVE", uid: "equity", tooltip: "Historical equity trend"},
-  {name: "TOTAL PNL", uid: "pnl", tooltip: "Cumulative profit & loss"},
-  {name: "ROI", uid: "roi", tooltip: "Return on investment"},
-  {name: "PF", uid: "pf", tooltip: "Profit Factor = Total Gains / Total Losses"},
+  {name: "EQUITY CURVE", uid: "equity", tooltip: "Historical score trend"},
+  {name: "TOTAL PNL", uid: "pnl", tooltip: "Cumulative points earned"},
+  {name: "ROI", uid: "roi", tooltip: "Score change percentage"},
+  {name: "PF", uid: "pf", tooltip: "Profit Factor = Total Wins / Total Losses"},
   {name: "STATUS", uid: "status", tooltip: "Win streak 🔥 or loss streak ❄️"},
 ];
 
@@ -156,7 +156,7 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
         const isPositive = user.pnl >= 0;
         return (
           <div className={`font-mono font-bold text-base ${isPositive ? 'text-[#EA4C1F] dark:text-[#FF5722]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}`}>
-            {isPositive ? '+' : '-'}${Math.abs(user.pnl).toLocaleString()}
+            {isPositive ? '+' : ''}{user.pnl.toLocaleString()} <span className="text-xs font-normal opacity-60">pts</span>
           </div>
         );
       case "roi":

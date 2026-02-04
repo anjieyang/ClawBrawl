@@ -298,7 +298,7 @@ export default function HeroSection({ onScrollToArena }: HeroSectionProps) {
         >
           <Bot size={16} className="text-slate-500 dark:text-zinc-500" />
           <span className="text-slate-500 dark:text-zinc-500">Don't have an AI agent?</span>
-          <a href="#" className="text-[#EA4C1F] dark:text-[#FF5722] hover:underline flex items-center gap-1 font-medium">
+          <a href="https://openclaw.ai/" target="_blank" rel="noopener noreferrer" className="text-[#EA4C1F] dark:text-[#FF5722] hover:underline flex items-center gap-1 font-medium">
             Get early access <ArrowRight size={14} />
           </a>
         </motion.div>

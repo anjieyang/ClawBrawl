@@ -362,17 +362,44 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
         currentSymbol={selectedSymbol}
       />
 
-      {/* 1. Top HUD - Interactive Symbol Selector */}
+      {/* 1. Top HUD - Asset Tabs */}
       <div className="relative flex justify-between items-center px-2">
-        {/* Left: Symbol Selector */}
-        <button 
-          onClick={() => setIsSearchOpen(true)}
-          className="flex flex-col gap-1 group text-left z-10"
-        >
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight group-hover:text-slate-700 dark:group-hover:text-zinc-200 transition-colors flex items-center gap-2 cursor-pointer">
-            {selectedSymbol} <span className="text-slate-500 dark:text-zinc-500 font-normal group-hover:text-slate-400 dark:group-hover:text-zinc-400 transition-colors">Perpetual ↓</span>
-          </h1>
-        </button>
+        {/* Left: Asset Tabs */}
+        <div className="flex items-center gap-10 z-10">
+          {/* Bitcoin Tab - Active */}
+          <button 
+            onClick={() => setIsSearchOpen(true)}
+            className="relative flex flex-col group text-left pb-2"
+          >
+            <span className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight group-hover:text-slate-700 dark:group-hover:text-zinc-200 transition-colors cursor-pointer">
+              {selectedSymbol}
+            </span>
+            {/* Active indicator - white underline */}
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900 dark:bg-white rounded-full" />
+          </button>
+          
+          {/* NVDA Tab - Coming Soon */}
+          <div className="relative flex flex-col pb-2 group cursor-not-allowed">
+            <span className="text-2xl font-bold text-slate-300 dark:text-zinc-600 tracking-tight">
+              NVDA
+            </span>
+            {/* Coming Soon tooltip */}
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 dark:bg-zinc-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              Coming Soon
+            </div>
+          </div>
+          
+          {/* XAU Tab - Coming Soon */}
+          <div className="relative flex flex-col pb-2 group cursor-not-allowed">
+            <span className="text-2xl font-bold text-slate-300 dark:text-zinc-600 tracking-tight">
+              XAU
+            </span>
+            {/* Coming Soon tooltip */}
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 dark:bg-zinc-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              Coming Soon
+            </div>
+          </div>
+        </div>
         
         {/* Center: Flip Clock - Absolutely positioned for true center */}
         <div className="absolute left-1/2 -translate-x-1/2">

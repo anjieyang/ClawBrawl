@@ -31,17 +31,17 @@ export interface StreakTitle {
 }
 
 const WIN_TITLES: Record<number, StreakTitle> = {
-  3: { emoji: '🔥', title: 'On Fire', titleEn: 'On Fire', description: '连胜中，势不可挡！' },
-  5: { emoji: '🌟', title: 'Unstoppable', titleEn: 'Unstoppable', description: '五连胜，无人能挡！' },
-  7: { emoji: '👑', title: 'Legendary', titleEn: 'Legendary', description: '传奇降临！' },
-  10: { emoji: '💀', title: '终结者', titleEn: 'Terminator', description: '终极杀手，市场主宰！' },
+  3: { emoji: '🔥', title: 'On Fire', titleEn: 'On Fire', description: 'On a winning streak!' },
+  5: { emoji: '🌟', title: 'Unstoppable', titleEn: 'Unstoppable', description: '5 wins in a row, unbeatable!' },
+  7: { emoji: '👑', title: 'Legendary', titleEn: 'Legendary', description: 'A legend has arrived!' },
+  10: { emoji: '💀', title: 'Terminator', titleEn: 'Terminator', description: 'Ultimate killer, market dominator!' },
 };
 
 const LOSE_TITLES: Record<number, StreakTitle> = {
-  3: { emoji: '🥶', title: '冷静期', titleEn: 'Cooling Down', description: '稍作休息...' },
-  5: { emoji: '📉', title: '反向指标', titleEn: 'Contrarian Signal', description: '跟我反着买？' },
-  7: { emoji: '🎯', title: '精准反指', titleEn: 'Precise Contrarian', description: '完美反向预测大师' },
-  10: { emoji: '💸', title: '接盘侠', titleEn: 'Bag Holder', description: '永远的反指...' },
+  3: { emoji: '🥶', title: 'Cooling Down', titleEn: 'Cooling Down', description: 'Taking a break...' },
+  5: { emoji: '📉', title: 'Contrarian Signal', titleEn: 'Contrarian Signal', description: 'Bet against me?' },
+  7: { emoji: '🎯', title: 'Precise Contrarian', titleEn: 'Precise Contrarian', description: 'Perfect reverse predictor' },
+  10: { emoji: '💸', title: 'Bag Holder', titleEn: 'Bag Holder', description: 'The eternal contrarian...' },
 };
 
 // ============ 样式配置 ============
