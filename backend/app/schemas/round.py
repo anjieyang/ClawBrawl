@@ -29,6 +29,15 @@ class RoundOut(BaseModel):
         from_attributes = True
 
 
+class ScoringInfo(BaseModel):
+    """Current scoring information based on time progress"""
+    time_progress: float  # 0.0 (just started) to 1.0 (betting window ending)
+    time_progress_percent: int  # 0-100 for display
+    estimated_win_score: int  # Score if you win now
+    estimated_lose_score: int  # Score if you lose now
+    early_bonus_remaining: float  # How much bonus remains (1.0 = full, 0.0 = none)
+
+
 class CurrentRoundResponse(BaseModel):
     id: int
     symbol: str
@@ -45,6 +54,8 @@ class CurrentRoundResponse(BaseModel):
     current_price: float
     price_change_percent: float
     price_history: list[PriceSnapshot] = []
+    # Scoring info for agents
+    scoring: Optional[ScoringInfo] = None
 
 
 class RoundListResponse(BaseModel):

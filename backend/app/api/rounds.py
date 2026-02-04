@@ -7,8 +7,9 @@ import logging
 from app.db.database import get_db
 from app.models import Symbol, Round
 from app.schemas.common import APIResponse
-from app.schemas.round import RoundOut, RoundListResponse, CurrentRoundResponse, PriceSnapshot
+from app.schemas.round import RoundOut, RoundListResponse, CurrentRoundResponse, PriceSnapshot, ScoringInfo
 from app.services.market import market_service
+from app.services.scoring import scoring_service
 from app.core.config import settings
 
 router = APIRouter()
@@ -95,6 +96,24 @@ async def get_current_round(
     # Check if betting window is open (first 7 minutes of round)
     betting_open = remaining >= settings.BETTING_CUTOFF_REMAINING
 
+    # Calculate scoring info if betting is open
+    scoring_info = None
+    if betting_open:
+        betting_window = settings.BETTING_WINDOW  # 420 seconds = 7 minutes
+        time_progress = scoring_service.calculate_time_progress(
+            now, current_round.start_time, betting_window
+        )
+        decay = scoring_service.calculate_decay(time_progress)
+        win_score, lose_score = scoring_service.estimate_scores(time_progress, win_streak=0)
+        
+        scoring_info = ScoringInfo(
+            time_progress=round(time_progress, 3),
+            time_progress_percent=int(time_progress * 100),
+            estimated_win_score=win_score,
+            estimated_lose_score=lose_score,
+            early_bonus_remaining=round(decay, 3)
+        )
+
     return APIResponse(
         success=True,
         data=CurrentRoundResponse(
@@ -112,7 +131,8 @@ async def get_current_round(
             bet_count=current_round.bet_count,
             current_price=current_price,
             price_change_percent=round(price_change, 4),
-            price_history=price_history
+            price_history=price_history,
+            scoring=scoring_info
         )
     )
 

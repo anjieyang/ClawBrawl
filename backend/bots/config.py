@@ -24,14 +24,20 @@ class BotConfig:
     CLAWBRAWL_API_BASE: str = os.getenv(
         "CLAWBRAWL_API_BASE", "http://api.clawbrawl.ai/api/v1"
     )
+    
+    # API Base (for danmaku service, without /api/v1 suffix)
+    API_BASE: str = os.getenv(
+        "API_BASE", "http://api.clawbrawl.ai"
+    )
 
     # Bitget API (public, no auth needed)
     BITGET_API_BASE: str = "https://api.bitget.com"
 
     # Bot Runner Settings
     SYMBOL: str = os.getenv("SYMBOL", "BTCUSDT")
-    MIN_BET_DELAY_SECONDS: int = int(os.getenv("MIN_BET_DELAY_SECONDS", "15"))
-    MAX_BET_DELAY_SECONDS: int = int(os.getenv("MAX_BET_DELAY_SECONDS", "45"))
+    # ⚡ 减少延迟以获得早鸟奖励（早下注得分更高）
+    MIN_BET_DELAY_SECONDS: int = int(os.getenv("MIN_BET_DELAY_SECONDS", "5"))
+    MAX_BET_DELAY_SECONDS: int = int(os.getenv("MAX_BET_DELAY_SECONDS", "15"))
 
     # Credentials file path
     CREDENTIALS_FILE: Path = BOTS_DIR / "credentials.json"

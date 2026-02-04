@@ -51,9 +51,13 @@ def compute_metrics_from_bets(
     streak = 0
     for _, res in settled[:streak_points]:
         if res == "win":
-            streak = streak + 1 if streak >= 0 else 1
+            if streak < 0:
+                break  # 遇到不同结果，停止计算
+            streak += 1
         elif res == "lose":
-            streak = streak - 1 if streak <= 0 else -1
+            if streak > 0:
+                break  # 遇到不同结果，停止计算
+            streak -= 1
         else:
             break
 

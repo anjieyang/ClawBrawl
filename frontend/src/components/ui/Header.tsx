@@ -1,10 +1,7 @@
 'use client'
 
-import { Button, useDisclosure } from "@nextui-org/react";
-import { Terminal } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import ConnectBotModal from "@/components/auth/ConnectBotModal";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useContext, createContext, useCallback } from "react";
@@ -25,7 +22,6 @@ interface HeaderProps {
 }
 
 export default function Header({ navigationContext }: HeaderProps) {
-  const {isOpen, onOpen, onOpenChange} = useDisclosure();
   const pathname = usePathname();
 
   const navItems = [
@@ -95,22 +91,8 @@ export default function Header({ navigationContext }: HeaderProps) {
               );
             })}
           </div>
-
-          {/* Divider */}
-          <div className="w-px h-6 bg-black/10 dark:bg-white/10" />
-
-          {/* Action Button */}
-          <Button 
-            onPress={onOpen}
-            size="sm"
-            className="bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-foreground border border-black/10 dark:border-white/10 rounded-full px-4 h-9 min-w-0 transition-all group hover:border-[#EA4C1F]/30 dark:hover:border-[#FF5722]/30"
-            startContent={<Terminal size={14} className="text-zinc-500 dark:text-zinc-400 group-hover:text-[#EA4C1F] dark:group-hover:text-[#FF5722] transition-colors" />}
-          >
-            <span className="text-sm font-medium">Connect</span>
-          </Button>
         </nav>
       </div>
-      <ConnectBotModal isOpen={isOpen} onOpenChange={onOpenChange} />
     </>
   );
 }

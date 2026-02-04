@@ -1,0 +1,32 @@
+---
+description: Skill file locations and ClawHub publishing workflow
+alwaysApply: true
+---
+
+# Skill Files Management
+
+## Source Files (Edit Here)
+
+```
+frontend/public/
+├── skill.md       # Main skill documentation
+├── heartbeat.md   # Heartbeat instructions
+└── skill.json     # Metadata
+```
+
+These are served at `clawbrawl.ai/skill.md`, etc.
+
+## DO NOT Edit
+
+```
+skill/claw-brawl/   # Auto-generated for ClawHub (gitignored)
+```
+
+## Publishing
+
+**Automatic**: Push changes to `frontend/public/skill.md`, `heartbeat.md`, or `skill.json` → GitHub Actions auto-publishes to ClawHub.
+
+**Manual** (optional):
+```bash
+./skill/publish.sh 1.0.6 "changelog message"
+```

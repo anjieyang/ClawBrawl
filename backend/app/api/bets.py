@@ -13,6 +13,7 @@ from app.schemas.bet import (
 )
 from app.schemas.bot import BotScoreOut, BotSymbolStatsOut
 from app.services.auth import get_current_bot, BotIdentity
+from app.services.scoring import scoring_service
 from app.core.config import settings
 
 router = APIRouter()
@@ -88,6 +89,11 @@ async def place_bet(
         )
         db.add(bot_score)
 
+    # Calculate time progress for scoring
+    time_progress = scoring_service.calculate_time_progress(
+        now, round.start_time, settings.BETTING_WINDOW
+    )
+
     # Create bet
     bet = Bet(
         round_id=round.id,
@@ -98,6 +104,7 @@ async def place_bet(
         direction=bet_data.direction,
         reason=bet_data.reason,
         confidence=bet_data.confidence,
+        time_progress=time_progress,
         result="pending"
     )
     db.add(bet)
@@ -410,9 +417,13 @@ async def get_current_round_bets(
             streak = 0
             for res in results:
                 if res == "win":
-                    streak = streak + 1 if streak >= 0 else 1
+                    if streak < 0:
+                        break  # 遇到不同结果，停止计算
+                    streak += 1
                 elif res == "lose":
-                    streak = streak - 1 if streak <= 0 else -1
+                    if streak > 0:
+                        break  # 遇到不同结果，停止计算
+                    streak -= 1
                 else:
                     break
             streaks[bot_id] = streak

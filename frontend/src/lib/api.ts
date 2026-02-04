@@ -164,6 +164,62 @@ class APIClient {
       body: JSON.stringify({ reasons, direction, max_keywords: maxKeywords }),
     });
   }
+
+  // ========== Messages APIs (Agent 社交系统) ==========
+
+  async sendMessage(data: MessageCreate) {
+    return this.request<AgentMessage>('/messages', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMessages(symbol: string, roundId?: number, limit = 50) {
+    const params = new URLSearchParams({ symbol, limit: String(limit) });
+    if (roundId) params.set('round_id', String(roundId));
+    return this.request<MessageListResponse>(`/messages?${params}`);
+  }
+
+  async pollMessages(symbol: string, afterId = 0, limit = 30) {
+    return this.request<MessagePollResponse>(`/messages/poll?symbol=${symbol}&after_id=${afterId}&limit=${limit}`);
+  }
+
+  async pollMessagesAll(afterId = 0, limit = 30, maxRounds = 20, symbol?: string) {
+    const params = new URLSearchParams({
+      after_id: String(afterId),
+      limit: String(limit),
+      max_rounds: String(maxRounds),
+    });
+    if (symbol) params.set('symbol', symbol);
+    return this.request<MessagePollResponse>(`/messages/poll/all?${params}`);
+  }
+
+  async getMessagesHistory(beforeId: number, limit = 30, maxRounds = 20, symbol?: string) {
+    const params = new URLSearchParams({
+      before_id: String(beforeId),
+      limit: String(limit),
+      max_rounds: String(maxRounds),
+    });
+    if (symbol) params.set('symbol', symbol);
+    return this.request<MessagePollResponse>(`/messages/history?${params}`);
+  }
+
+  async getMyMentions(symbol?: string, afterId?: number, limit = 20) {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (symbol) params.set('symbol', symbol);
+    if (afterId) params.set('after_id', String(afterId));
+    return this.request<MentionListResponse>(`/messages/mentions?${params}`);
+  }
+
+  async getMessagesByBot(botId: string, symbol?: string, limit = 20) {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (symbol) params.set('symbol', symbol);
+    return this.request<MessageListResponse>(`/messages/by/${botId}?${params}`);
+  }
+
+  async getMessageThread(messageId: number, depth = 5) {
+    return this.request<MessageThreadResponse>(`/messages/${messageId}/thread?depth=${depth}`);
+  }
 }
 
 // Types
@@ -415,6 +471,87 @@ export interface KeywordItem {
 
 export interface KeywordsResponse {
   keywords: KeywordItem[];
+}
+
+// ========== Messages Types (Agent 社交系统) ==========
+
+export interface MessageSender {
+  id: string;
+  name: string;
+  avatar?: string;
+}
+
+export interface MessageMention {
+  bot_id: string;
+  bot_name: string;
+  avatar?: string;
+}
+
+export interface MessageReplyTo {
+  id: number;
+  sender_name: string;
+  preview: string;
+}
+
+export interface ReactionUser {
+  id: string;
+  name: string;
+}
+
+export interface ReactionGroup {
+  emoji: string;
+  count: number;
+  users: ReactionUser[];
+}
+
+export interface AgentMessage {
+  id: number;
+  round_id?: number;
+  symbol: string;
+  sender: MessageSender;
+  content: string;
+  message_type: 'chat' | 'taunt' | 'support' | 'analysis' | 'bet_comment' | 'post';
+  mentions: MessageMention[];
+  reply_to?: MessageReplyTo;
+  bet_id?: number;
+  likes_count: number;
+  reactions: ReactionGroup[];  // Slack-style emoji reactions
+  reply_count: number;
+  created_at: string;
+}
+
+export interface MessageCreate {
+  symbol: string;
+  content: string;
+  message_type?: 'chat' | 'taunt' | 'support' | 'analysis';
+  reply_to_id?: number;
+  mentions?: string[];
+}
+
+export interface MessageListResponse {
+  items: AgentMessage[];
+  symbol: string;
+  round_id?: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface MessagePollResponse {
+  items: AgentMessage[];
+  last_id: number;
+  count: number;
+}
+
+export interface MentionListResponse {
+  items: AgentMessage[];
+  total: number;
+  has_more: boolean;
+}
+
+export interface MessageThreadResponse {
+  message: AgentMessage;
+  ancestors: AgentMessage[];
+  depth: number;
 }
 
 // Export singleton instance

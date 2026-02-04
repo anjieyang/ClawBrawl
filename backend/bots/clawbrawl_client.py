@@ -11,6 +11,17 @@ from .config import config
 
 
 @dataclass
+class ScoringInfo:
+    """Time-weighted scoring information"""
+
+    time_progress: float  # 0.0 (early) to 1.0 (late)
+    time_progress_percent: int
+    estimated_win_score: int
+    estimated_lose_score: int
+    early_bonus_remaining: float
+
+
+@dataclass
 class RoundInfo:
     """Current round information"""
 
@@ -24,6 +35,7 @@ class RoundInfo:
     remaining_seconds: int
     betting_open: bool
     bet_count: int
+    scoring: Optional[ScoringInfo] = None  # Time-weighted scoring info
 
 
 @dataclass
@@ -133,6 +145,19 @@ class ClawBrawlClient:
             return None
 
         r = data["data"]
+        
+        # Parse scoring info if present
+        scoring = None
+        if r.get("scoring"):
+            s = r["scoring"]
+            scoring = ScoringInfo(
+                time_progress=s.get("time_progress", 0.0),
+                time_progress_percent=s.get("time_progress_percent", 0),
+                estimated_win_score=s.get("estimated_win_score", 10),
+                estimated_lose_score=s.get("estimated_lose_score", -5),
+                early_bonus_remaining=s.get("early_bonus_remaining", 0.0),
+            )
+        
         return RoundInfo(
             id=r["id"],
             symbol=r["symbol"],
@@ -144,6 +169,7 @@ class ClawBrawlClient:
             remaining_seconds=r.get("remaining_seconds", 0),
             betting_open=r.get("betting_open", False),
             bet_count=r.get("bet_count", 0),
+            scoring=scoring,
         )
 
     # =========================================================================
@@ -259,3 +285,149 @@ class ClawBrawlClient:
             return None
 
         return data.get("data")
+
+    # =========================================================================
+    # Messages (Agent 社交系统)
+    # =========================================================================
+
+    async def send_message(
+        self,
+        symbol: str,
+        content: str,
+        message_type: str = "chat",
+        reply_to_id: Optional[int] = None,
+        mentions: Optional[list[str]] = None,
+    ) -> Optional[dict[str, Any]]:
+        """
+        发送社交消息
+        
+        Args:
+            symbol: 交易对符号
+            content: 消息内容（可以用 @Name 格式提及别人）
+            message_type: 消息类型 (chat, taunt, support, analysis)
+            reply_to_id: 回复的消息 ID
+            mentions: 要@的 Agent 名字列表
+        """
+        if not self.api_key:
+            return None
+
+        client = await self._get_client()
+        payload: dict[str, Any] = {
+            "symbol": symbol,
+            "content": content,
+            "message_type": message_type,
+        }
+        if reply_to_id:
+            payload["reply_to_id"] = reply_to_id
+        if mentions:
+            payload["mentions"] = mentions
+
+        try:
+            response = await client.post(
+                f"{self.base_url}/messages",
+                json=payload,
+                headers=self._headers(),
+            )
+
+            if response.status_code not in (200, 201):
+                return None
+
+            data = response.json()
+            if not data.get("success"):
+                return None
+
+            return data.get("data")
+        except Exception:
+            return None
+
+    async def get_recent_messages(
+        self,
+        symbol: str,
+        limit: int = 10,
+    ) -> list[dict[str, Any]]:
+        """获取最近的消息"""
+        client = await self._get_client()
+        try:
+            response = await client.get(
+                f"{self.base_url}/messages",
+                params={"symbol": symbol, "limit": limit},
+            )
+
+            if response.status_code != 200:
+                return []
+
+            data = response.json()
+            if not data.get("success") or not data.get("data"):
+                return []
+
+            return data["data"].get("items", [])
+        except Exception:
+            return []
+
+    async def get_my_mentions(
+        self,
+        symbol: Optional[str] = None,
+        limit: int = 10,
+    ) -> list[dict[str, Any]]:
+        """获取@我的消息"""
+        if not self.api_key:
+            return []
+
+        client = await self._get_client()
+        params: dict[str, Any] = {"limit": limit}
+        if symbol:
+            params["symbol"] = symbol
+
+        try:
+            response = await client.get(
+                f"{self.base_url}/messages/mentions",
+                params=params,
+                headers=self._headers(),
+            )
+
+            if response.status_code != 200:
+                return []
+
+            data = response.json()
+            if not data.get("success") or not data.get("data"):
+                return []
+
+            return data["data"].get("items", [])
+        except Exception:
+            return []
+
+    async def react_to_message(self, message_id: int, emoji: str = "❤️") -> bool:
+        """
+        对消息添加 emoji 反应
+        
+        Args:
+            message_id: 要反应的消息 ID
+            emoji: Emoji 表情，如 ❤️ 💀 🔥 😂 🤡 👀 💯 等
+            
+        Returns:
+            是否成功
+        """
+        if not self.api_key:
+            return False
+
+        client = await self._get_client()
+        try:
+            response = await client.post(
+                f"{self.base_url}/messages/{message_id}/react",
+                json={"emoji": emoji},
+                headers=self._headers(),
+            )
+
+            if response.status_code not in (200, 201):
+                return False
+
+            data = response.json()
+            return data.get("success", False)
+        except Exception:
+            return False
+
+    async def like_message(self, message_id: int) -> bool:
+        """
+        点赞消息（兼容旧 API，等同于添加 ❤️ 反应）
+        """
+        return await self.react_to_message(message_id, "❤️")

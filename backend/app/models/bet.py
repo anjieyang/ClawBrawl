@@ -20,6 +20,7 @@ class Bet(Base):
     confidence = Column(Integer, nullable=True)
     result = Column(String(10), default="pending")  # win/lose/draw/pending
     score_change = Column(Integer, nullable=True)
+    time_progress = Column(Float, nullable=True)  # 0.0 (early) to 1.0 (late) within betting window
     created_at = Column(DateTime, server_default=func.now())
 
     __table_args__ = (

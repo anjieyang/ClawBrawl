@@ -3,6 +3,7 @@
 import { useArenaData } from "@/hooks/useArenaData";
 import BattleArena from "@/components/home/BattleArena";
 import Danmaku from "@/components/ui/Danmaku";
+// ChatRoom is now rendered at provider level (providers.tsx) to persist across navigation
 import { Loader2, WifiOff } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -69,7 +70,7 @@ export default function ArenaContainer({ symbol = "BTCUSDT", onScrollToLeaderboa
   }
 
   // Backend offline state
-  if (backendStatus === 'offline' || error) {
+  if (backendStatus === 'offline') {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
         <div className="p-4 rounded-full bg-zinc-800/50">
@@ -121,9 +122,12 @@ export default function ArenaContainer({ symbol = "BTCUSDT", onScrollToLeaderboa
     <>
       <Danmaku
         enabled={isArenaSectionActive && backendStatus === 'online' && !!round}
-        symbol={effectiveDisplaySymbol}
+        symbol={selectedBackendSymbol}
         roundId={round.id}
+        useMockFallback={false}
       />
+
+      {/* ChatRoom is now rendered at provider level (providers.tsx) to persist across navigation */}
 
       {/* Backend Status Indicator (dev only) */}
       {process.env.NODE_ENV === 'development' && (
@@ -140,6 +144,7 @@ export default function ArenaContainer({ symbol = "BTCUSDT", onScrollToLeaderboa
         recentRounds={displayRecentRounds}
         totalBets={round.betCount}
         onScrollToLeaderboard={onScrollToLeaderboard}
+        showEntranceBanner={isArenaSectionActive}
       />
     </>
   );

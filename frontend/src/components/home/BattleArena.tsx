@@ -9,6 +9,8 @@ import PriceChart from "@/components/home/PriceChart";
 import SymbolSearch from "@/components/home/SymbolSearch";
 import FlipClock from "@/components/ui/FlipClock";
 import api, { KeywordItem } from "@/lib/api";
+import { getStreakInfo, STREAK_THRESHOLDS } from "@/lib/streak";
+import EntranceBanner, { EntranceEvent } from "@/components/ui/EntranceBanner";
 
 interface BotBet {
   id: number;
@@ -57,9 +59,11 @@ interface BattleArenaProps {
   recentRounds: RecentRound[];
   totalBets?: number; // Total bets in current round
   onScrollToLeaderboard?: () => void;
+  /** 是否显示进场横幅（仅在 Arena section 可见时启用） */
+  showEntranceBanner?: boolean;
 }
 
-export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bets, recentRounds, totalBets = 0, onScrollToLeaderboard }: BattleArenaProps) {
+export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bets, recentRounds, totalBets = 0, onScrollToLeaderboard, showEntranceBanner = true }: BattleArenaProps) {
   const [timeLeft, setTimeLeft] = useState(round.remainingSeconds);
   const [mounted, setMounted] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -76,6 +80,59 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
   const [longKeywords, setLongKeywords] = useState<KeywordItem[]>([]);
   const [shortKeywords, setShortKeywords] = useState<KeywordItem[]>([]);
   const [keywordsLoading, setKeywordsLoading] = useState(false);
+  
+  // 进场播报事件
+  const [entranceEvents, setEntranceEvents] = useState<EntranceEvent[]>([]);
+  const prevBetIdsRef = useRef<Set<number>>(new Set());
+  const lastRoundIdForEntranceRef = useRef<number | null>(null);
+
+  // 轮次切换时重置进场播报相关状态，避免把“同步到的数据”误判成“新下注进场”
+  useEffect(() => {
+    if (lastRoundIdForEntranceRef.current === null) {
+      lastRoundIdForEntranceRef.current = round.id;
+      return;
+    }
+    if (lastRoundIdForEntranceRef.current !== round.id) {
+      prevBetIdsRef.current = new Set();
+      setEntranceEvents([]);
+      lastRoundIdForEntranceRef.current = round.id;
+    }
+  }, [round.id]);
+  
+  // 检测新进场的高 streak bot
+  useEffect(() => {
+    const allBets = [...bets.long, ...bets.short];
+    const currentBetIds = new Set(allBets.map(b => b.id));
+    
+    // 找出新增的 bets
+    const newBets = allBets.filter(bot => !prevBetIdsRef.current.has(bot.id));
+    
+    // 为高 streak 的新 bot 创建进场事件
+    const newEvents: EntranceEvent[] = [];
+    for (const bot of newBets) {
+      const streakInfo = getStreakInfo(bot.streak || 0);
+      if (streakInfo.style?.triggerEntrance) {
+        const direction = bets.long.some(b => b.id === bot.id) ? 'long' : 'short';
+        newEvents.push({
+          id: `entrance-${bot.id}-${Date.now()}`,
+          botId: bot.botId || String(bot.id),
+          botName: bot.name,
+          avatar: bot.avatar,
+          streak: bot.streak || 0,
+          direction,
+          winRate: bot.winRate,
+          timestamp: Date.now(),
+        });
+      }
+    }
+    
+    if (newEvents.length > 0) {
+      setEntranceEvents(prev => [...prev, ...newEvents]);
+    }
+    
+    // 更新已处理的 bet IDs
+    prevBetIdsRef.current = currentBetIds;
+  }, [bets]);
   
   // Calculate prize pool based on actual total bets (each bet contributes to the pool)
   const prizePool = totalBets * 10; // 10 PTS per bet
@@ -373,7 +430,9 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
               <AnimatePresence>
                 {bets.long.map((bot, i) => {
                   const { winRate, streak } = bot;
-                  const isStreak = (streak || 0) >= 3;
+                  const streakInfo = getStreakInfo(streak || 0);
+                  const hasStreakStyle = streakInfo.style !== null;
+                  
                   return (
                     <motion.div 
                       key={bot.id}
@@ -383,12 +442,56 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                       className="p-3 rounded-xl bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 hover:bg-slate-200/50 dark:hover:bg-white/10 transition-colors group/item"
                     >
                       <div className="flex items-center gap-3 mb-2">
-                        <Avatar src={bot.avatar} size="sm" className={`opacity-80 group-hover/item:opacity-100 transition-opacity ${isStreak ? 'ring-2 ring-[#FFD700]/50' : ''}`} />
+                        {/* 头像 + 头像框 */}
+                        <div className="relative">
+                          <div 
+                            className={`rounded-full ${hasStreakStyle ? streakInfo.style!.animationClass : ''}`}
+                            style={hasStreakStyle ? { boxShadow: streakInfo.style!.avatarGlow } : undefined}
+                          >
+                            <Avatar 
+                              src={bot.avatar} 
+                              size="sm" 
+                              className={`opacity-80 group-hover/item:opacity-100 transition-opacity ${
+                                hasStreakStyle ? streakInfo.style!.avatarRing : ''
+                              }`} 
+                            />
+                          </div>
+                          {/* Streak 称号徽章 */}
+                          {streakInfo.title && streakInfo.tier >= 5 && (
+                            <div className={`absolute -bottom-1 -right-1 text-[8px] rounded-full z-10 ${
+                              streakInfo.isWinning 
+                                ? 'bg-gradient-to-r from-yellow-400 to-orange-500' 
+                                : 'bg-gradient-to-r from-violet-500 to-gray-600'
+                            }`}>
+                              {streakInfo.title.emoji}
+                            </div>
+                          )}
+                        </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm text-slate-700 dark:text-zinc-200 truncate">{bot.name}</p>
-                          <div className="flex items-center gap-2">
-                             <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono bg-slate-200/50 dark:bg-white/5 px-1.5 rounded">Rank #{i + 1}</span>
-                             <span className={`text-[10px] font-mono ${(winRate || 0) > 60 ? 'text-[#22C55E]' : 'text-slate-400 dark:text-zinc-500'}`}>{winRate}% WR</span>
+                          {/* 名字发光 */}
+                          <p 
+                            className={`font-medium text-sm truncate ${
+                              hasStreakStyle 
+                                ? (streakInfo.tier >= 7 ? 'animate-streak-rainbow-text font-bold' : streakInfo.style!.textColorClass)
+                                : 'text-slate-700 dark:text-zinc-200'
+                            }`}
+                            style={hasStreakStyle && streakInfo.tier < 7 ? { textShadow: streakInfo.style!.textGlow } : undefined}
+                          >
+                            {bot.name}
+                          </p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                             <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono bg-slate-200/50 dark:bg-white/5 px-1.5 rounded whitespace-nowrap">Rank #{i + 1}</span>
+                             <span className={`text-[10px] font-mono whitespace-nowrap ${(winRate || 0) > 60 ? 'text-[#22C55E]' : 'text-slate-400 dark:text-zinc-500'}`}>{winRate}% WR</span>
+                             {/* 称号标签 */}
+                             {streakInfo.title && (
+                               <span className={`text-[9px] px-1 py-0.5 rounded font-medium whitespace-nowrap ${
+                                 streakInfo.isWinning
+                                   ? 'text-yellow-600 dark:text-yellow-400 bg-yellow-500/15'
+                                   : 'text-violet-600 dark:text-violet-400 bg-violet-500/15'
+                               }`}>
+                                 {streakInfo.title.emoji} {streakInfo.title.titleEn}
+                               </span>
+                             )}
                           </div>
                         </div>
                       </div>
@@ -397,7 +500,7 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                       <Tooltip 
                         content={
                           <div className="max-w-xs p-2">
-                            <p className="text-xs font-medium text-zinc-300 mb-1">{bot.name}'s Analysis:</p>
+                            <p className="text-xs font-medium text-zinc-300 mb-1">{bot.name}&apos;s Analysis:</p>
                             <p className="text-sm text-white">{bot.reason}</p>
                           </div>
                         }
@@ -409,7 +512,7 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                         }}
                       >
                         <div className="mb-2 px-2 py-1.5 bg-[#22C55E]/5 border-l-2 border-[#22C55E]/30 rounded-r cursor-help">
-                          <p className="text-[11px] text-zinc-300 italic line-clamp-2">"{bot.reason}"</p>
+                          <p className="text-[11px] text-zinc-300 italic line-clamp-2">&quot;{bot.reason}&quot;</p>
                         </div>
                       </Tooltip>
                     )}
@@ -417,17 +520,17 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                       <div className="flex items-center gap-1.5">
                          {(streak || 0) > 0 ? (
                             <>
-                                <Flame size={12} className={(streak || 0) >= 3 ? "text-[#FFD700] fill-[#FFD700]" : "text-zinc-500"} />
-                                <span className={`text-[10px] font-mono ${(streak || 0) >= 3 ? "text-[#FFD700] font-bold" : "text-zinc-500"}`}>
+                                <Flame size={12} className={`${streakInfo.tier >= 5 ? "text-yellow-400 fill-yellow-400 animate-pulse" : streakInfo.tier >= 3 ? "text-[#FFD700] fill-[#FFD700]" : "text-zinc-500"}`} />
+                                <span className={`text-[10px] font-mono ${streakInfo.tier >= 5 ? "text-yellow-400 font-bold" : streakInfo.tier >= 3 ? "text-[#FFD700] font-bold" : "text-zinc-500"}`}>
                                     {streak} Streak
                                 </span>
                             </>
                          ) : (
                             <>
-                                <span className={`text-[10px] font-mono font-medium ${Math.abs(streak || 0) >= 3 ? "text-[#EF4444] font-bold" : "text-zinc-500"}`}>
+                                <span className={`text-[10px] font-mono font-medium ${streakInfo.tier >= 5 ? "text-violet-400 font-bold" : streakInfo.tier >= 3 ? "text-[#EF4444] font-bold" : "text-zinc-500"}`}>
                                     {Math.abs(streak || 0)} Loss
                                 </span>
-                                <Skull size={12} className={Math.abs(streak || 0) >= 3 ? "text-[#EF4444]" : "text-zinc-500"} />
+                                <Skull size={12} className={streakInfo.tier >= 5 ? "text-violet-400" : streakInfo.tier >= 3 ? "text-[#EF4444]" : "text-zinc-500"} />
                             </>
                          )}
                       </div>
@@ -545,7 +648,9 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
             <AnimatePresence mode="popLayout">
               {bets.short.map((bot, i) => {
                 const { winRate, streak } = bot;
-                const isStreak = (streak || 0) >= 3;
+                const streakInfo = getStreakInfo(streak || 0);
+                const hasStreakStyle = streakInfo.style !== null;
+                
                 return (
                   <motion.div 
                     key={bot.id}
@@ -562,12 +667,56 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                     className="p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group/item"
                   >
                     <div className="flex flex-row-reverse items-center gap-3 mb-2">
-                      <Avatar src={bot.avatar} size="sm" className={`opacity-80 group-hover/item:opacity-100 transition-opacity ${isStreak ? 'ring-2 ring-[#FFD700]/50' : ''}`} />
+                      {/* 头像 + 头像框 */}
+                      <div className="relative">
+                        <div 
+                          className={`rounded-full ${hasStreakStyle ? streakInfo.style!.animationClass : ''}`}
+                          style={hasStreakStyle ? { boxShadow: streakInfo.style!.avatarGlow } : undefined}
+                        >
+                          <Avatar 
+                            src={bot.avatar} 
+                            size="sm" 
+                            className={`opacity-80 group-hover/item:opacity-100 transition-opacity ${
+                              hasStreakStyle ? streakInfo.style!.avatarRing : ''
+                            }`} 
+                          />
+                        </div>
+                        {/* Streak 称号徽章 */}
+                        {streakInfo.title && streakInfo.tier >= 5 && (
+                          <div className={`absolute -bottom-1 -left-1 text-[8px] rounded-full z-10 ${
+                            streakInfo.isWinning 
+                              ? 'bg-gradient-to-r from-yellow-400 to-orange-500' 
+                              : 'bg-gradient-to-r from-violet-500 to-gray-600'
+                          }`}>
+                            {streakInfo.title.emoji}
+                          </div>
+                        )}
+                      </div>
                       <div className="flex-1 min-w-0 text-right">
-                        <p className="font-medium text-sm text-zinc-200 truncate">{bot.name}</p>
-                        <div className="flex items-center justify-end gap-2">
-                           <span className={`text-[10px] font-mono ${(winRate || 0) > 60 ? 'text-[#FF4D4D]' : 'text-zinc-500'}`}>{winRate}% WR</span>
-                           <span className="text-[10px] text-zinc-500 font-mono bg-white/5 px-1.5 rounded">Rank #{i + 1}</span>
+                        {/* 名字发光 */}
+                        <p 
+                          className={`font-medium text-sm truncate ${
+                            hasStreakStyle 
+                              ? (streakInfo.tier >= 7 ? 'animate-streak-rainbow-text font-bold' : streakInfo.style!.textColorClass)
+                              : 'text-zinc-200'
+                          }`}
+                          style={hasStreakStyle && streakInfo.tier < 7 ? { textShadow: streakInfo.style!.textGlow } : undefined}
+                        >
+                          {bot.name}
+                        </p>
+                        <div className="flex items-center justify-end gap-2 flex-wrap">
+                           {/* 称号标签 */}
+                           {streakInfo.title && (
+                             <span className={`text-[9px] px-1 py-0.5 rounded font-medium whitespace-nowrap ${
+                               streakInfo.isWinning
+                                 ? 'text-yellow-600 dark:text-yellow-400 bg-yellow-500/15'
+                                 : 'text-violet-600 dark:text-violet-400 bg-violet-500/15'
+                             }`}>
+                               {streakInfo.title.emoji} {streakInfo.title.titleEn}
+                             </span>
+                           )}
+                           <span className={`text-[10px] font-mono whitespace-nowrap ${(winRate || 0) > 60 ? 'text-[#FF4D4D]' : 'text-zinc-500'}`}>{winRate}% WR</span>
+                           <span className="text-[10px] text-zinc-500 font-mono bg-white/5 px-1.5 rounded whitespace-nowrap">Rank #{i + 1}</span>
                         </div>
                       </div>
                     </div>
@@ -576,7 +725,7 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                       <Tooltip 
                         content={
                           <div className="max-w-xs p-2">
-                            <p className="text-xs font-medium text-zinc-300 mb-1">{bot.name}'s Analysis:</p>
+                            <p className="text-xs font-medium text-zinc-300 mb-1">{bot.name}&apos;s Analysis:</p>
                             <p className="text-sm text-white">{bot.reason}</p>
                           </div>
                         }
@@ -588,7 +737,7 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                         }}
                       >
                         <div className="mb-2 px-2 py-1.5 bg-[#FF4D4D]/5 border-r-2 border-[#FF4D4D]/30 rounded-l text-right cursor-help">
-                          <p className="text-[11px] text-zinc-300 italic line-clamp-2">"{bot.reason}"</p>
+                          <p className="text-[11px] text-zinc-300 italic line-clamp-2">&quot;{bot.reason}&quot;</p>
                         </div>
                       </Tooltip>
                     )}
@@ -603,17 +752,17 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                       <div className="flex items-center gap-1.5">
                          {(streak || 0) > 0 ? (
                             <>
-                                <span className={`text-[10px] font-mono ${(streak || 0) >= 3 ? "text-[#FFD700] font-bold" : "text-zinc-500"}`}>
+                                <span className={`text-[10px] font-mono ${streakInfo.tier >= 5 ? "text-yellow-400 font-bold" : streakInfo.tier >= 3 ? "text-[#FFD700] font-bold" : "text-zinc-500"}`}>
                                     {streak} Streak
                                 </span>
-                                <Flame size={12} className={(streak || 0) >= 3 ? "text-[#FFD700] fill-[#FFD700]" : "text-zinc-500"} />
+                                <Flame size={12} className={`${streakInfo.tier >= 5 ? "text-yellow-400 fill-yellow-400 animate-pulse" : streakInfo.tier >= 3 ? "text-[#FFD700] fill-[#FFD700]" : "text-zinc-500"}`} />
                             </>
                          ) : (
                             <>
-                                <span className={`text-[10px] font-mono font-medium ${Math.abs(streak || 0) >= 3 ? "text-[#EF4444] font-bold" : "text-zinc-500"}`}>
+                                <span className={`text-[10px] font-mono font-medium ${streakInfo.tier >= 5 ? "text-violet-400 font-bold" : streakInfo.tier >= 3 ? "text-[#EF4444] font-bold" : "text-zinc-500"}`}>
                                     {Math.abs(streak || 0)} Loss
                                 </span>
-                                <Skull size={12} className={Math.abs(streak || 0) >= 3 ? "text-[#EF4444]" : "text-zinc-500"} />
+                                <Skull size={12} className={streakInfo.tier >= 5 ? "text-violet-400" : streakInfo.tier >= 3 ? "text-[#EF4444]" : "text-zinc-500"} />
                             </>
                          )}
                       </div>
@@ -1015,6 +1164,9 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
         </div>,
         document.body
       )}
+      
+      {/* 进场播报横幅 - 仅在 Arena section 可见时显示 */}
+      <EntranceBanner events={entranceEvents} duration={4000} enabled={mounted && showEntranceBanner} />
     </div>
   );
 }

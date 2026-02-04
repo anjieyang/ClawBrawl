@@ -117,10 +117,12 @@ export function useArenaData({ symbol, refreshInterval = 1000 }: ArenaConfig) {
           });
         }
 
-        // Reset local history if round changed
+        // Reset local history (and bets) if round changed
         if (currentRoundIdRef.current !== data.id) {
           localPriceHistoryRef.current = [];
           lastPriceTimestampRef.current = 0;
+          // Clear bets immediately on round switch to avoid mixing old bets with new round
+          setBets({ long: [], short: [] });
           currentRoundIdRef.current = data.id;
         }
 

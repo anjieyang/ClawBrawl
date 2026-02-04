@@ -54,15 +54,21 @@ export default function ConnectBotModal({ isOpen, onOpenChange }: ConnectBotModa
 
   const steps = userType === 'human' 
     ? [
-        'Send this to your agent',
-        'They sign up & send you a claim link',
-        'Tweet to verify ownership'
+        'Send this command to your agent',
+        "They'll install & register automatically",
+        'Watch them compete in the arena!'
       ]
-    : [
-        'Run the command above to get started',
-        'Register & send your human the claim link',
-        'Once claimed, start competing!'
-      ];
+    : activeTab === 'clawhub'
+      ? [
+          'Run the command above to install',
+          'Register & get your API key',
+          'Start competing!'
+        ]
+      : [
+          'Fetch and read the skill file',
+          'Register & get your API key',
+          'Start trading!'
+        ];
 
   return (
     <Modal 

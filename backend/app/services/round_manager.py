@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Symbol, Round, Bet, BotScore, BotSymbolStats
 from app.services.market import market_service
+from app.services.scoring import scoring_service
 from app.core.config import settings
 import logging
 
@@ -183,18 +184,26 @@ class RoundManager:
             )
             bets = bets_result.scalars().all()
 
+            # Get win streaks for all bots in this round
+            bot_ids = [b.bot_id for b in bets]
+            win_streaks = await self._get_win_streaks(db, bot_ids)
+
             # Settle each bet
             for bet in bets:
                 if round_result == "draw":
-                    score_change = settings.DRAW_SCORE
                     bet_result = "draw"
                 elif (bet.direction == "long" and round_result == "up") or \
                      (bet.direction == "short" and round_result == "down"):
-                    score_change = settings.WIN_SCORE
                     bet_result = "win"
                 else:
-                    score_change = settings.LOSE_SCORE
                     bet_result = "lose"
+
+                # Calculate time-weighted score
+                time_progress = bet.time_progress if bet.time_progress is not None else 0.5
+                win_streak = win_streaks.get(bet.bot_id, 0)
+                score_change = scoring_service.calculate_score_change(
+                    time_progress, bet_result, win_streak
+                )
 
                 # Update bet
                 bet.result = bet_result
@@ -222,6 +231,58 @@ class RoundManager:
             except Exception:
                 pass  # Ignore rollback errors
             raise  # Re-raise to let caller handle
+
+    async def _get_win_streaks(
+        self,
+        db: AsyncSession,
+        bot_ids: list[str]
+    ) -> dict[str, int]:
+        """
+        Get current win streak for each bot.
+        
+        Returns:
+            Dict mapping bot_id to win streak (0 if no streak or on losing streak)
+        """
+        if not bot_ids:
+            return {}
+
+        streaks: dict[str, int] = {}
+
+        # Get recent settled bets for each bot (up to 10)
+        rn = func.row_number().over(
+            partition_by=Bet.bot_id, order_by=Bet.created_at.desc()
+        ).label("rn")
+        subq = (
+            select(Bet.bot_id, Bet.result, rn)
+            .where(Bet.bot_id.in_(bot_ids), Bet.result != "pending")
+            .subquery()
+        )
+        streak_rows = await db.execute(
+            select(subq.c.bot_id, subq.c.result)
+            .where(subq.c.rn <= 10)
+            .order_by(subq.c.bot_id, subq.c.rn)
+        )
+
+        # Group results by bot_id
+        bot_results: dict[str, list[str]] = {}
+        for bot_id, result in streak_rows.all():
+            if bot_id not in bot_results:
+                bot_results[bot_id] = []
+            bot_results[bot_id].append(result)
+
+        # Calculate streak for each bot
+        for bot_id, results in bot_results.items():
+            streak = 0
+            for res in results:
+                if res == "win":
+                    streak += 1
+                elif res == "draw":
+                    continue  # Draws don't break streak
+                else:
+                    break  # Lose breaks streak
+            streaks[bot_id] = streak
+
+        return streaks
 
     async def _update_bot_score(
         self,

@@ -30,11 +30,26 @@ class Settings(BaseSettings):
     BETTING_CUTOFF_REMAINING: int = 180  # Must have >= 180 seconds remaining to bet (last 3 min closed)
     DRAW_THRESHOLD: float = 0.0001  # 0.01%
 
-    # Scoring
+    # Scoring - Base
     WIN_SCORE: int = 10
     LOSE_SCORE: int = -5
     DRAW_SCORE: int = 0
     INITIAL_SCORE: int = 100
+
+    # Scoring - Time-weighted (Early Bird Bonus)
+    EARLY_BONUS: float = 1.0      # Win bonus for early bets (max +100%)
+    LATE_PENALTY: float = 0.6    # Lose penalty for late bets (max +60%)
+    DECAY_K: float = 3.0         # Exponential decay speed (higher = steeper)
+
+    # Scoring - Streak Multipliers (win streak only)
+    STREAK_MULTIPLIERS: dict[int, float] = {
+        0: 1.0,
+        1: 1.0,
+        2: 1.1,   # 2-win streak: +10%
+        3: 1.25,  # 3-win streak: +25%
+        4: 1.4,   # 4-win streak: +40%
+        5: 1.6,   # 5+ win streak: +60% (capped)
+    }
 
     class Config:
         env_file = ".env"

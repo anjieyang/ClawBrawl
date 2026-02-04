@@ -5,6 +5,7 @@ import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Avatar
 import { Flame, Snowflake } from "lucide-react";
 import { Sparkline } from "@/components/ui/Sparkline";
 import type { LeaderboardRow } from "@/hooks/useLeaderboard";
+import { getStreakInfo } from "@/lib/streak";
 
 const columns = [
   {name: "#", uid: "rank", tooltip: "Rank"},
@@ -56,25 +57,80 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
           </div>
         );
       case "bot":
+        const streakInfo = getStreakInfo(user.streak || 0);
+        const hasStreakStyle = streakInfo.style !== null;
+        
+        // 头像框样式
+        const avatarRingClass = hasStreakStyle 
+          ? streakInfo.style!.avatarRing 
+          : (user.rank <= 3 ? 'ring-2 ring-white/20 dark:ring-white/20 ring-slate-200' : '');
+        
+        // 头像动画类
+        const avatarAnimationClass = hasStreakStyle ? streakInfo.style!.animationClass : '';
+        
         return (
           <div className="flex items-center gap-4">
             <div className="relative">
-                <Avatar 
-                src={user.avatar} 
-                size="md"
-                className={user.rank <= 3 ? 'ring-2 ring-white/20 dark:ring-white/20 ring-slate-200' : ''}
-                />
+                <div 
+                  className={`rounded-full ${avatarAnimationClass}`}
+                  style={hasStreakStyle ? { boxShadow: streakInfo.style!.avatarGlow } : undefined}
+                >
+                  <Avatar 
+                    src={user.avatar} 
+                    size="md"
+                    className={avatarRingClass}
+                  />
+                </div>
+                {/* KING 徽章 */}
                 {user.rank === 1 && (
-                    <div className="absolute -top-2 -right-2 bg-[#eab308] dark:bg-[#FFD700] text-black text-[10px] px-1.5 rounded-full font-bold border border-black/10">
+                    <div className="absolute -top-2 -right-2 bg-[#eab308] dark:bg-[#FFD700] text-black text-[10px] px-1.5 rounded-full font-bold border border-black/10 z-10">
                         KING
                     </div>
                 )}
+                {/* Streak 称号徽章 */}
+                {streakInfo.title && streakInfo.tier >= 5 && (
+                    <Tooltip 
+                      content={streakInfo.title.description}
+                      placement="top"
+                      delay={200}
+                      classNames={{ content: "text-xs bg-zinc-900 text-white px-2 py-1" }}
+                    >
+                      <div className={`absolute -bottom-1 -right-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold border border-black/20 z-10 cursor-help ${
+                        streakInfo.isWinning 
+                          ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-black' 
+                          : 'bg-gradient-to-r from-violet-500 to-gray-600 text-white'
+                      }`}>
+                        {streakInfo.title.emoji}
+                      </div>
+                    </Tooltip>
+                )}
             </div>
             <div>
-               <div className="flex items-center gap-2">
-                   <p className="font-bold text-slate-900 dark:text-white text-base">{user.name}</p>
+               <div className="flex items-center gap-2 flex-nowrap">
+                   {/* 名字发光效果 */}
+                   <p 
+                     className={`font-bold text-base max-w-[140px] truncate ${
+                       hasStreakStyle 
+                         ? (streakInfo.tier >= 7 ? 'animate-streak-rainbow-text' : streakInfo.style!.textColorClass)
+                         : 'text-slate-900 dark:text-white'
+                     }`}
+                     style={hasStreakStyle && streakInfo.tier < 7 ? { textShadow: streakInfo.style!.textGlow } : undefined}
+                     title={user.name}
+                   >
+                     {user.name}
+                   </p>
+                   {/* Streak 称号文字 */}
+                   {streakInfo.title && (
+                     <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium whitespace-nowrap ${
+                       streakInfo.isWinning
+                         ? 'border-yellow-500/40 text-yellow-600 dark:text-yellow-400 bg-yellow-500/10'
+                         : 'border-violet-500/40 text-violet-600 dark:text-violet-400 bg-violet-500/10'
+                     }`}>
+                       {streakInfo.title.emoji} {streakInfo.title.titleEn}
+                     </span>
+                   )}
                    {user.tags && user.tags.map((tag: string, i: number) => (
-                       <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                       <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded border whitespace-nowrap ${
                            tag === 'Whale' ? 'border-purple-500/30 text-purple-600 dark:text-purple-400 bg-purple-500/10' :
                            tag === 'Degen' ? 'border-pink-500/30 text-pink-600 dark:text-pink-400 bg-pink-500/10' :
                            tag === 'Rekt' ? 'border-red-500/30 text-red-600 dark:text-red-400 bg-red-500/10' :
@@ -110,7 +166,7 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
               <span className={`font-mono font-bold ${isRoiPositive ? 'text-[#EA4C1F] dark:text-[#FF5722]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}`}>
                 {isRoiPositive ? '+' : ''}{user.roi.toLocaleString()}%
               </span>
-              <span className="text-[10px] text-slate-400 dark:text-zinc-600 font-mono">MaxDD: {user.drawdown}%</span>
+              <span className="text-[10px] text-slate-400 dark:text-zinc-600 font-mono whitespace-nowrap">MaxDD: {user.drawdown}%</span>
           </div>
         );
       case "pf":
@@ -120,18 +176,31 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
           </div>
         );
       case "status":
-        const streak = user.streak || 0;
+        const statusStreak = user.streak || 0;
+        const statusStreakInfo = getStreakInfo(statusStreak);
         return (
           <div className="flex items-center gap-2">
-            {streak > 0 ? (
-                <div className="flex items-center gap-1 text-[#EA4C1F] dark:text-[#FF5722] font-mono font-bold bg-[#EA4C1F]/10 dark:bg-[#FF5722]/10 px-2 py-1 rounded-full border border-[#EA4C1F]/20 dark:border-[#FF5722]/20">
-                    <Flame size={14} className="fill-current" />
-                    {streak}
+            {statusStreak > 0 ? (
+                <div className={`flex items-center gap-1 font-mono font-bold px-2 py-1 rounded-full border ${
+                  statusStreakInfo.tier >= 5
+                    ? 'text-yellow-500 dark:text-yellow-400 bg-yellow-500/15 border-yellow-500/30'
+                    : statusStreakInfo.tier >= 3
+                    ? 'text-orange-500 dark:text-orange-400 bg-orange-500/15 border-orange-500/30'
+                    : 'text-[#EA4C1F] dark:text-[#FF5722] bg-[#EA4C1F]/10 border-[#EA4C1F]/20'
+                }`}>
+                    <Flame size={14} className={`fill-current ${statusStreakInfo.tier >= 5 ? 'animate-pulse' : ''}`} />
+                    {statusStreak}
                 </div>
-            ) : streak < 0 ? (
-                <div className="flex items-center gap-1 text-[#dc2626] dark:text-[#FF4D4D] font-mono font-bold bg-[#dc2626]/10 dark:bg-[#FF4D4D]/10 px-2 py-1 rounded-full border border-[#dc2626]/20 dark:border-[#FF4D4D]/20">
+            ) : statusStreak < 0 ? (
+                <div className={`flex items-center gap-1 font-mono font-bold px-2 py-1 rounded-full border ${
+                  statusStreakInfo.tier >= 5
+                    ? 'text-violet-500 dark:text-violet-400 bg-violet-500/15 border-violet-500/30'
+                    : statusStreakInfo.tier >= 3
+                    ? 'text-sky-500 dark:text-sky-400 bg-sky-500/15 border-sky-500/30'
+                    : 'text-[#dc2626] dark:text-[#FF4D4D] bg-[#dc2626]/10 border-[#dc2626]/20'
+                }`}>
                     <Snowflake size={14} className="fill-current" />
-                    {Math.abs(streak)}
+                    {Math.abs(statusStreak)}
                 </div>
             ) : (
                 <span className="text-slate-400 dark:text-zinc-600 font-mono">-</span>

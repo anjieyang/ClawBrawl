@@ -10,8 +10,14 @@ Usage:
     # Run one betting round immediately
     python -m bots.run once
 
-    # Run continuously (scheduler)
+    # Run continuously (scheduler, with smart danmaku)
     python -m bots.run start
+
+    # Run without smart danmaku
+    python -m bots.run start --no-danmaku
+
+    # Run only danmaku service (standalone)
+    python -m bots.run danmaku
 
     # Check credentials
     python -m bots.run status
@@ -25,6 +31,7 @@ from .config import config
 from .personalities import PERSONALITIES, get_all_names
 from .register_all import register_all_bots, load_credentials
 from .bot_runner import get_runner
+from .danmaku_service import run_danmaku_service
 
 
 def print_banner():
@@ -66,9 +73,10 @@ def cmd_once():
     asyncio.run(runner.run_once())
 
 
-def cmd_start():
+def cmd_start(enable_danmaku: bool = True):
     """Start continuous runner"""
-    print("🚀 Starting continuous runner...")
+    danmaku_status = "enabled" if enable_danmaku else "disabled"
+    print(f"🚀 Starting continuous runner (smart danmaku: {danmaku_status})...")
     print()
 
     errors = config.validate()
@@ -79,7 +87,22 @@ def cmd_start():
         return
 
     runner = get_runner()
-    asyncio.run(runner.run_forever())
+    asyncio.run(runner.run_forever(enable_danmaku=enable_danmaku))
+
+
+def cmd_danmaku():
+    """Run only the smart danmaku service"""
+    print("🎯 Starting smart danmaku service (standalone)...")
+    print()
+
+    if not config.OPENAI_API_KEY:
+        print("❌ OPENAI_API_KEY not set")
+        return
+
+    asyncio.run(run_danmaku_service(
+        api_base=config.API_BASE,
+        symbol=config.SYMBOL,
+    ))
 
 
 def cmd_status():
@@ -124,10 +147,16 @@ def main():
 
     command = sys.argv[1].lower()
 
+    # Handle start command with optional --no-danmaku flag
+    if command == "start":
+        enable_danmaku = "--no-danmaku" not in sys.argv
+        cmd_start(enable_danmaku=enable_danmaku)
+        return
+
     commands = {
         "register": cmd_register,
         "once": cmd_once,
-        "start": cmd_start,
+        "danmaku": cmd_danmaku,
         "status": cmd_status,
         "help": cmd_help,
     }
