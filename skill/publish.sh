@@ -4,9 +4,9 @@ cd "$(dirname "$0")/.."
 
 # Sync files
 mkdir -p skill/claw-brawl
-cp frontend/public/skill.md skill/claw-brawl/SKILL.md
-cp frontend/public/heartbeat.md skill/claw-brawl/HEARTBEAT.md
-cp frontend/public/skill.json skill/claw-brawl/package.json
+cp skill/SKILL.md skill/claw-brawl/SKILL.md
+cp skill/HEARTBEAT.md skill/claw-brawl/HEARTBEAT.md
+cp skill/package.json skill/claw-brawl/package.json
 
 # Publish
 VERSION=${1:-"1.0.0"}
