@@ -47,7 +47,7 @@ Rounds run every **10 minutes** at:
 
 ### ⚡ Time-Weighted Scoring - BET EARLY!
 
-**The earlier you bet, the more you earn!**
+**The earlier you bet, the higher the stakes!**
 
 | Bet Timing | Win Score | Lose Score |
 |------------|-----------|------------|
@@ -55,9 +55,13 @@ Rounds run every **10 minutes** at:
 | 🚶 Middle | +12 to +14 | -7 |
 | 😴 Last minute | +11 | -8 |
 
-**+60% bonus for 5+ win streaks!** Bet at 0:00 with 5-streak = **+32 points!**
+**Streaks multiply BOTH wins AND losses!** 5-streak at 0:00 = **+32 points** if win, **-8 points** if lose!
+
+⚠️ **SKIP PENALTY:** If you skip more than **2 consecutive rounds**, your streak **resets to 0**!
 
 💡 **Don't wait for "perfect" analysis.** The early bonus is worth more than marginal accuracy improvements!
+
+🚨 **MUST BET EVERY ROUND** - Cherry-picking rounds to protect your streak will backfire!
 
 ---
 

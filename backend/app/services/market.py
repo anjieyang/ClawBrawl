@@ -2,6 +2,9 @@ import httpx
 from decimal import Decimal
 from typing import Optional
 from app.core.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class MarketService:
@@ -127,6 +130,135 @@ class MarketService:
             # Sort by timestamp ascending
             candles.sort(key=lambda x: x["timestamp"])
             return candles
+
+    async def get_historical_fills(
+        self,
+        symbol: str,
+        product_type: str = "USDT-FUTURES",
+        start_time: int | None = None,
+        end_time: int | None = None,
+        limit: int = 1000
+    ) -> list[dict]:
+        """
+        Get historical transaction/fill data from Bitget (tick-level).
+        
+        Endpoint: GET /api/v2/mix/market/fills-history
+        Rate limit: 10 requests/second
+        
+        Args:
+            symbol: Trading pair (e.g., "BTCUSDT")
+            product_type: Product type (default "USDT-FUTURES")
+            start_time: Start timestamp in milliseconds
+            end_time: End timestamp in milliseconds
+            limit: Max records (default 1000)
+        
+        Returns:
+            List of trade records with tradeId, price, size, side, ts, symbol
+        """
+        async with httpx.AsyncClient() as client:
+            params = {
+                "symbol": symbol,
+                "productType": product_type.lower().replace("_", "-"),
+                "limit": str(limit)
+            }
+            if start_time:
+                params["startTime"] = str(start_time)
+            if end_time:
+                params["endTime"] = str(end_time)
+            
+            response = await client.get(
+                f"{self.base_url}/api/v2/mix/market/fills-history",
+                params=params,
+                timeout=15.0
+            )
+            data = response.json()
+
+            if data.get("code") != "00000":
+                raise Exception(
+                    f"Bitget API error: {data.get('msg', 'Unknown error')}")
+
+            trades = []
+            for item in data.get("data", []):
+                trades.append({
+                    "tradeId": item.get("tradeId"),
+                    "price": float(item.get("price", 0)),
+                    "size": float(item.get("size", 0)),
+                    "side": item.get("side"),
+                    "timestamp": int(item.get("ts", 0)),
+                    "symbol": item.get("symbol")
+                })
+            
+            # Sort by timestamp ascending
+            trades.sort(key=lambda x: x["timestamp"])
+            return trades
+
+    async def get_historical_prices_aggregated(
+        self,
+        symbol: str,
+        product_type: str = "USDT-FUTURES",
+        start_time: int | None = None,
+        end_time: int | None = None,
+        interval_ms: int = 1000
+    ) -> list[dict]:
+        """
+        Get historical price data from Bitget fills-history API,
+        aggregated into fixed time intervals.
+        
+        This provides second-level granularity for chart display.
+        
+        Args:
+            symbol: Trading pair (e.g., "BTCUSDT")
+            product_type: Product type (default "USDT-FUTURES")
+            start_time: Start timestamp in milliseconds
+            end_time: End timestamp in milliseconds
+            interval_ms: Aggregation interval in milliseconds (default 1000 = 1 second)
+        
+        Returns:
+            List of {timestamp, price} dicts, one per interval
+        """
+        try:
+            # Fetch tick-level data
+            trades = await self.get_historical_fills(
+                symbol=symbol,
+                product_type=product_type,
+                start_time=start_time,
+                end_time=end_time,
+                limit=1000
+            )
+            
+            if not trades:
+                return []
+            
+            # Aggregate trades into fixed intervals
+            price_map: dict[int, list[float]] = {}
+            
+            for trade in trades:
+                ts = trade["timestamp"]
+                price = trade["price"]
+                
+                # Round timestamp to interval
+                interval_ts = (ts // interval_ms) * interval_ms
+                
+                if interval_ts not in price_map:
+                    price_map[interval_ts] = []
+                price_map[interval_ts].append(price)
+            
+            # Convert to list with last price per interval
+            result = []
+            for ts in sorted(price_map.keys()):
+                prices = price_map[ts]
+                # Use last price in interval (most recent)
+                result.append({
+                    "timestamp": ts,
+                    "price": prices[-1]
+                })
+            
+            logger.info(f"Fetched {len(result)} price points from Bitget fills for {symbol}")
+            return result
+            
+        except Exception as e:
+            logger.warning(f"Failed to fetch Bitget fills for {symbol}: {e}")
+            return []
 
 
 # Singleton instance

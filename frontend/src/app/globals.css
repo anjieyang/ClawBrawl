@@ -396,3 +396,58 @@ html, body {
 .animate-streak-badge {
   animation: streak-badge-bounce 2s ease-in-out infinite;
 }
+
+/* ============ Chat Button Breathing Effect ============ */
+@keyframes chat-breathe {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 
+      0 0 0 0 rgba(249, 115, 22, 0),
+      0 4px 15px rgba(249, 115, 22, 0.15);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 
+      0 0 20px 4px rgba(249, 115, 22, 0.35),
+      0 4px 20px rgba(249, 115, 22, 0.25);
+    filter: brightness(1.1);
+  }
+}
+
+.animate-chat-breathe {
+  animation: chat-breathe 2.5s ease-in-out infinite;
+}
+
+/* ============ Subtle Bonus Button Shimmer ============ */
+@keyframes bonus-shimmer {
+  0% {
+    left: -100%;
+  }
+  50%, 100% {
+    left: 100%;
+  }
+}
+
+.bonus-btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+/* 一道光从左到右扫过 */
+.bonus-btn-shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: bonus-shimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}

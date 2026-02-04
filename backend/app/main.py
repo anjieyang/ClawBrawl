@@ -12,8 +12,12 @@ from app.core.config import settings
 from app.db.database import AsyncSessionLocal
 from app.api import api_router
 from app.services.round_manager import round_manager
+from app.services.market import market_service
+from app.services.price_history import price_history_service
+from app.services.ws_hub import ws_hub
 from app.models import Symbol, Round
 from sqlalchemy import select
+import time
 
 # Configure logging
 logging.basicConfig(
@@ -26,10 +30,74 @@ logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler()
 
 
+async def price_sampler_job():
+    """
+    Price sampler job - runs every second
+    Records current price for all active rounds to database.
+    Also broadcasts price_tick to WebSocket subscribers.
+    
+    This ensures we have second-level price history even if:
+    - Frontend is not connected
+    - Backend restarts (data persists in DB)
+    - Bitget API has gaps
+    """
+    async with AsyncSessionLocal() as db:
+        try:
+            # Get all active rounds
+            result = await db.execute(
+                select(Round, Symbol)
+                .join(Symbol, Round.symbol == Symbol.symbol)
+                .where(Round.status == "active")
+            )
+            active_rounds = result.all()
+            
+            for round_obj, symbol_config in active_rounds:
+                try:
+                    # Get current price
+                    current_price = await market_service.get_price_by_source(
+                        symbol_config.symbol,
+                        symbol_config.api_source,
+                        symbol_config.product_type
+                    )
+                    
+                    # Record to database
+                    timestamp_ms = int(time.time() * 1000)
+                    await price_history_service.record_price(
+                        db=db,
+                        round_id=round_obj.id,
+                        timestamp_ms=timestamp_ms,
+                        price=current_price
+                    )
+                    
+                    # Calculate price change and remaining time
+                    now = datetime.utcnow()
+                    remaining = max(0, int((round_obj.end_time - now).total_seconds()))
+                    price_change = ((current_price - round_obj.open_price) / 
+                                    round_obj.open_price) * 100 if round_obj.open_price else 0
+                    
+                    # Broadcast price_tick to WebSocket subscribers
+                    await ws_hub.broadcast(symbol_config.symbol, {
+                        "type": "price_tick",
+                        "data": {
+                            "price": float(current_price),
+                            "timestamp": timestamp_ms,
+                            "change_percent": round(price_change, 4),
+                            "remaining_seconds": remaining
+                        }
+                    })
+                    
+                except Exception as e:
+                    logger.debug(f"Price sample failed for {symbol_config.symbol}: {e}")
+                    
+        except Exception as e:
+            logger.error(f"Price sampler error: {e}")
+
+
 async def round_scheduler_job():
     """
     Round scheduler job - runs every 5 seconds
     Checks all enabled symbols and manages their rounds.
+    Also broadcasts round_start and round_end events to WebSocket subscribers.
     
     Rounds are aligned to fixed 10-minute intervals:
     - Start times: :00, :10, :20, :30, :40, :50
@@ -69,7 +137,21 @@ async def round_scheduler_job():
                             f"Settling round {active_round.id} for {sym.symbol} "
                             f"(ended at {active_round.end_time.strftime('%H:%M:%S')}, status: {active_round.status})")
                         try:
-                            await round_manager.settle_round(db, active_round.id)
+                            settled_round = await round_manager.settle_round(db, active_round.id)
+                            
+                            # Broadcast round_end event
+                            if settled_round:
+                                price_change_pct = (settled_round.price_change * 100) if settled_round.price_change else 0
+                                await ws_hub.broadcast(sym.symbol, {
+                                    "type": "round_end",
+                                    "data": {
+                                        "id": settled_round.id,
+                                        "result": settled_round.result,
+                                        "close_price": float(settled_round.close_price) if settled_round.close_price else None,
+                                        "price_change_percent": round(price_change_pct, 4)
+                                    }
+                                })
+                                logger.info(f"Broadcast round_end for {sym.symbol} round {settled_round.id}")
                         except Exception as settle_err:
                             logger.error(
                                 f"Settlement error for {sym.symbol}: {settle_err}")
@@ -91,7 +173,11 @@ async def round_scheduler_job():
                                 logger.info(
                                     f"Creating new round for {sym.symbol} "
                                     f"({current_start.strftime('%H:%M')} - {current_end.strftime('%H:%M')})")
-                                await round_manager.create_round(db, sym)
+                                new_round = await round_manager.create_round(db, sym)
+                                
+                                # Broadcast round_start event
+                                if new_round:
+                                    await _broadcast_round_start(sym, new_round)
                 else:
                     # No active round - check if we should create one for current interval
                     if current_start <= now < current_end:
@@ -109,7 +195,11 @@ async def round_scheduler_job():
                             logger.info(
                                 f"No active round for {sym.symbol}, creating one "
                                 f"({current_start.strftime('%H:%M')} - {current_end.strftime('%H:%M')})")
-                            await round_manager.create_round(db, sym)
+                            new_round = await round_manager.create_round(db, sym)
+                            
+                            # Broadcast round_start event
+                            if new_round:
+                                await _broadcast_round_start(sym, new_round)
                         else:
                             logger.debug(
                                 f"Round already exists for current interval {sym.symbol} "
@@ -117,6 +207,39 @@ async def round_scheduler_job():
 
             except Exception as e:
                 logger.error(f"Error processing {sym.symbol}: {e}")
+
+
+async def _broadcast_round_start(sym: Symbol, round_obj: Round) -> None:
+    """Helper to broadcast round_start event."""
+    try:
+        now = datetime.utcnow()
+        remaining = max(0, int((round_obj.end_time - now).total_seconds()))
+        betting_open = remaining >= settings.BETTING_CUTOFF_REMAINING
+        
+        await ws_hub.broadcast(sym.symbol, {
+            "type": "round_start",
+            "data": {
+                "id": round_obj.id,
+                "symbol": round_obj.symbol,
+                "display_name": sym.display_name,
+                "category": sym.category,
+                "emoji": sym.emoji,
+                "start_time": round_obj.start_time.isoformat() + "Z",
+                "end_time": round_obj.end_time.isoformat() + "Z",
+                "open_price": float(round_obj.open_price),
+                "current_price": float(round_obj.open_price),
+                "price_change_percent": 0.0,
+                "status": round_obj.status,
+                "remaining_seconds": remaining,
+                "betting_open": betting_open,
+                "bet_count": 0,
+                "price_history": [],
+                "scoring": None
+            }
+        })
+        logger.info(f"Broadcast round_start for {sym.symbol} round {round_obj.id}")
+    except Exception as e:
+        logger.error(f"Failed to broadcast round_start: {e}")
 
 
 async def seed_symbols():
@@ -301,8 +424,17 @@ async def lifespan(app: FastAPI):
         id="round_scheduler",
         replace_existing=True
     )
+    
+    # Add price sampler job - runs every second to record prices to database
+    scheduler.add_job(
+        price_sampler_job,
+        IntervalTrigger(seconds=1),
+        id="price_sampler",
+        replace_existing=True
+    )
+    
     scheduler.start()
-    logger.info("Scheduler started")
+    logger.info("Scheduler started (round_scheduler: 5s, price_sampler: 1s)")
 
     # Run initial round check
     await round_scheduler_job()

@@ -1,7 +1,7 @@
 'use client'
 
 import { AreaChart, Area, ResponsiveContainer, YAxis, ReferenceLine, XAxis } from 'recharts';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 
 interface PriceSnapshot {
   timestamp: number;
@@ -15,6 +15,8 @@ interface PriceChartProps {
   timeLeft: number; 
   totalDurationSeconds: number;
   priceHistory?: PriceSnapshot[];
+  /** Round start time as Unix timestamp in milliseconds (optional, for accurate chart alignment) */
+  roundStartMs?: number;
 }
 
 interface DataPoint {
@@ -68,13 +70,17 @@ export default function PriceChart({
   isUp, 
   timeLeft, 
   totalDurationSeconds,
-  priceHistory = []
+  priceHistory = [],
+  roundStartMs: propRoundStartMs
 }: PriceChartProps) {
   const TOTAL_DURATION =
     Number.isFinite(totalDurationSeconds) && totalDurationSeconds > 0 ? totalDurationSeconds : 600;
-  const POINTS_COUNT = 50;
+  // Match data sampling rate: 1 point per second for 600 seconds
+  // This eliminates the "wiggle" caused by mapping ~600 snapshots to fewer chart points
+  const POINTS_COUNT = 600;
 
-  // Build chart data from real price history
+  // Build chart data directly from backend price history
+  // No fallback - backend is the single source of truth
   const data = useMemo((): DataPoint[] => {
     const timeElapsed = Math.max(0, TOTAL_DURATION - timeLeft);
     const progressPercent = Math.min(1, Math.max(0.02, timeElapsed / TOTAL_DURATION));
@@ -82,77 +88,100 @@ export default function PriceChart({
     
     const newData: DataPoint[] = [];
 
-    // If we have real price history, use it
-    if (priceHistory.length > 0) {
-      // Calculate round start time from current time and elapsed time
-      const nowMs = Date.now();
-      const timeElapsedMs = timeElapsed * 1000;
-      const roundStartMs = nowMs - timeElapsedMs;
-      const totalDurationMs = TOTAL_DURATION * 1000;
-      
+    // Must have both priceHistory and roundStartMs from backend
+    if (priceHistory.length === 0 || !propRoundStartMs) {
+      // No data yet - show empty chart with just openPrice at start
       for (let i = 0; i <= POINTS_COUNT; i++) {
-        if (i > currentPointIndex) {
-          // Future points: null (chart doesn't reach here yet)
-          newData.push({ time: i, value: null });
-        } else if (i === 0) {
-          // First point: always openPrice
+        if (i === 0) {
           newData.push({ time: 0, value: openPrice });
-        } else if (i === currentPointIndex) {
-          // Current "head" point: use actual currentPrice
-          newData.push({ time: i, value: currentPrice });
+        } else if (i > currentPointIndex) {
+          newData.push({ time: i, value: null });
         } else {
-          // Historical point: find the closest price snapshot for this time slot
-          const targetProgress = i / POINTS_COUNT;
-          const targetMs = roundStartMs + (targetProgress * totalDurationMs);
-          
-          // Find the snapshot closest to this target time
-          let closestSnapshot: PriceSnapshot | null = null;
-          let minDiff = Infinity;
-          
-          for (const snapshot of priceHistory) {
-            const diff = Math.abs(targetMs - snapshot.timestamp);
-            if (diff < minDiff) {
-              minDiff = diff;
-              closestSnapshot = snapshot;
-            }
-          }
-          
-          // Use closest snapshot if found, otherwise interpolate
-          if (closestSnapshot && minDiff < 30000) { // Within 30 seconds
-            newData.push({ time: i, value: closestSnapshot.price });
-          } else {
-            // No close snapshot found - interpolate between open and current
-            const progress = i / currentPointIndex;
-            const interpolatedValue = openPrice + (currentPrice - openPrice) * progress;
-            newData.push({ time: i, value: interpolatedValue });
+          newData.push({ time: i, value: openPrice }); // Flat line at openPrice until data arrives
+        }
+      }
+      return newData;
+    }
+
+    // Sort priceHistory by timestamp
+    const sortedHistory = [...priceHistory].sort((a, b) => a.timestamp - b.timestamp);
+    const roundStartMs = propRoundStartMs;
+    const totalDurationMs = TOTAL_DURATION * 1000;
+    
+    // Debug log (remove after fixing)
+    if (typeof window !== 'undefined') {
+      console.log('[PriceChart] roundStartMs:', roundStartMs, 'history:', sortedHistory.length, 
+        'first:', sortedHistory[0]?.timestamp, 'last:', sortedHistory[sortedHistory.length - 1]?.timestamp);
+    }
+    
+    // Pre-compute which snapshot each chart point should use
+    const snapshotForPoint: (PriceSnapshot | null)[] = new Array(POINTS_COUNT + 1).fill(null);
+    
+    for (let i = 1; i <= POINTS_COUNT; i++) {
+      const targetProgress = i / POINTS_COUNT;
+      const targetMs = roundStartMs + (targetProgress * totalDurationMs);
+      
+      // Find the snapshot closest to targetMs (within tolerance)
+      let bestSnapshot: PriceSnapshot | null = null;
+      let bestDiff = Infinity;
+      
+      for (const snapshot of sortedHistory) {
+        // Only consider snapshots at or before target time (+5s tolerance)
+        if (snapshot.timestamp <= targetMs + 5000) {
+          const diff = Math.abs(targetMs - snapshot.timestamp);
+          if (diff < bestDiff) {
+            bestDiff = diff;
+            bestSnapshot = snapshot;
           }
         }
       }
-    } else {
-      // Fallback: no history available, show only current price point
-      for (let i = 0; i <= POINTS_COUNT; i++) {
-        if (i > currentPointIndex) {
-          newData.push({ time: i, value: null });
-        } else if (i === 0) {
-          newData.push({ time: 0, value: openPrice });
-        } else if (i === currentPointIndex) {
-          newData.push({ time: i, value: currentPrice });
+      
+      // Use snapshot if within 60s window
+      if (bestSnapshot && bestDiff < 60000) {
+        snapshotForPoint[i] = bestSnapshot;
+      }
+    }
+    
+    // Build chart data
+    let lastKnownPrice = openPrice;
+    
+    for (let i = 0; i <= POINTS_COUNT; i++) {
+      if (i > currentPointIndex) {
+        // Future points: null
+        newData.push({ time: i, value: null });
+      } else if (i === 0) {
+        // First point: openPrice
+        newData.push({ time: 0, value: openPrice });
+      } else if (i === currentPointIndex) {
+        // Current point: actual currentPrice
+        newData.push({ time: i, value: currentPrice });
+      } else {
+        // Historical point: use snapshot or last known price
+        const snapshot = snapshotForPoint[i];
+        if (snapshot) {
+          newData.push({ time: i, value: snapshot.price });
+          lastKnownPrice = snapshot.price;
         } else {
-          // Interpolate between open and current when no history
-          const progress = i / currentPointIndex;
-          const interpolatedValue = openPrice + (currentPrice - openPrice) * progress;
-          newData.push({ time: i, value: interpolatedValue });
+          // No snapshot - use last known price (no interpolation)
+          newData.push({ time: i, value: lastKnownPrice });
         }
       }
     }
     
     return newData;
-  }, [openPrice, currentPrice, timeLeft, priceHistory, TOTAL_DURATION, POINTS_COUNT]);
+  }, [openPrice, currentPrice, timeLeft, priceHistory, TOTAL_DURATION, POINTS_COUNT, propRoundStartMs]);
+  
+  // Cache stable Y domain to prevent constant rescaling
+  const stableYDomainRef = useRef<[number, number] | null>(null);
   
   // Calculate Y-axis domain: openPrice is ALWAYS at vertical center
+  // CRITICAL FIX: Use stable domain with gradual expansion to prevent constant rescaling
   const yDomain = useMemo(() => {
     const validValues = data.filter(d => d.value !== null).map(d => d.value as number);
-    if (validValues.length === 0) return [openPrice - 100, openPrice + 100];
+    if (validValues.length === 0) {
+      const defaultDeviation = Math.max(100, openPrice * 0.002);
+      return [openPrice - defaultDeviation, openPrice + defaultDeviation] as [number, number];
+    }
     
     const dataMax = Math.max(...validValues);
     const dataMin = Math.min(...validValues);
@@ -162,17 +191,38 @@ export default function PriceChart({
     const deviationDown = openPrice - dataMin;
     
     // Use percentage-based minimum deviation for high-value assets
-    // 0.1% of openPrice ensures visibility even for BTC at 78000+
-    const minDeviationPercent = 0.001; // 0.1%
-    const minDeviation = Math.max(50, openPrice * minDeviationPercent);
+    // 0.2% of openPrice ensures visibility even for BTC at 78000+
+    const minDeviationPercent = 0.002; // 0.2%
+    const minDeviation = Math.max(100, openPrice * minDeviationPercent);
     
-    const maxDeviation = Math.max(deviationUp, deviationDown, minDeviation);
+    const currentMaxDeviation = Math.max(deviationUp, deviationDown, minDeviation);
     
-    // Add 20% padding
-    const paddedDeviation = maxDeviation * 1.2;
+    // Add 30% padding for stability
+    const paddedDeviation = currentMaxDeviation * 1.3;
     
-    // Symmetric domain around openPrice
-    return [openPrice - paddedDeviation, openPrice + paddedDeviation];
+    const newDomain: [number, number] = [openPrice - paddedDeviation, openPrice + paddedDeviation];
+    
+    // STABILITY FIX: Only expand domain, never shrink it during a session
+    // This prevents the chart from constantly rescaling
+    if (stableYDomainRef.current) {
+      const [oldMin, oldMax] = stableYDomainRef.current;
+      const oldDeviation = (oldMax - oldMin) / 2;
+      const newDeviation = paddedDeviation;
+      
+      // Only update if new deviation is significantly larger (>10% increase)
+      // or if openPrice has changed (new round)
+      const oldCenter = (oldMax + oldMin) / 2;
+      if (Math.abs(oldCenter - openPrice) > openPrice * 0.001 || newDeviation > oldDeviation * 1.1) {
+        stableYDomainRef.current = newDomain;
+        return newDomain;
+      }
+      
+      // Keep the old domain for stability
+      return stableYDomainRef.current;
+    }
+    
+    stableYDomainRef.current = newDomain;
+    return newDomain;
   }, [data, openPrice]);
 
   // Split series into above/below openPrice, inserting intersection points when crossing.
@@ -283,8 +333,10 @@ export default function PriceChart({
           />
 
           {/* Above openPrice: GREEN line + fill (price is UP = profit) */}
+          {/* STABILITY FIX: Use "linear" instead of "monotone" to prevent curve wiggle */}
+          {/* Monotone interpolation causes adjacent segments to shift when any point changes */}
           <Area
-            type="monotone"
+            type="linear"
             dataKey="above"
             stroke="#22C55E"
             strokeOpacity={0.9}
@@ -299,7 +351,7 @@ export default function PriceChart({
 
           {/* Below openPrice: RED line + fill (price is DOWN = loss) */}
           <Area
-            type="monotone"
+            type="linear"
             dataKey="below"
             stroke="#EF4444"
             strokeOpacity={0.9}

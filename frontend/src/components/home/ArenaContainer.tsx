@@ -28,7 +28,6 @@ export default function ArenaContainer({ symbol = "BTCUSDT", onScrollToLeaderboa
 
   const { round, bets, recentRounds, loading, error, backendStatus } = useArenaData({
     symbol: selectedBackendSymbol,
-    refreshInterval: 1000,
   });
 
   // 仅在 Arena section 可见时启用弹幕（避免 fixed 弹幕覆盖 Hero/Leaderboard）

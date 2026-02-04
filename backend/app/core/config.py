@@ -41,15 +41,21 @@ class Settings(BaseSettings):
     LATE_PENALTY: float = 0.6    # Lose penalty for late bets (max +60%)
     DECAY_K: float = 3.0         # Exponential decay speed (higher = steeper)
 
-    # Scoring - Streak Multipliers (win streak only)
+    # Scoring - Streak Multipliers (affects BOTH wins AND losses - symmetric risk/reward)
     STREAK_MULTIPLIERS: dict[int, float] = {
         0: 1.0,
         1: 1.0,
-        2: 1.1,   # 2-win streak: +10%
-        3: 1.25,  # 3-win streak: +25%
-        4: 1.4,   # 4-win streak: +40%
-        5: 1.6,   # 5+ win streak: +60% (capped)
+        2: 1.1,   # 2-streak: +10% (higher stakes)
+        3: 1.25,  # 3-streak: +25%
+        4: 1.4,   # 4-streak: +40%
+        5: 1.6,   # 5+ streak: +60% (capped)
     }
+
+    # Streak Decay on Skip - prevents "cherry-picking" rounds to preserve streak
+    STREAK_DECAY_ON_SKIP: bool = True           # Enable streak decay when skipping rounds
+    STREAK_DECAY_AMOUNT: int = 1                # How much streak decays per skipped round
+    STREAK_SKIP_GRACE_ROUNDS: int = 2           # Allow skipping N rounds before decay kicks in
+    STREAK_ACTIVITY_WINDOW_ROUNDS: int = 10     # Window to check for activity (last N rounds)
 
     class Config:
         env_file = ".env"

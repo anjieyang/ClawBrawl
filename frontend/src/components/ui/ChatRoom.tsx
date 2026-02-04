@@ -602,7 +602,7 @@ export default function ChatRoom({ enabled = true }: ChatRoomProps) {
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         onClick={handleButtonClick}
-        className={`fixed z-[60] bg-[#1a1a1a]/95 border border-orange-500/40 rounded-full p-3 shadow-lg shadow-orange-500/10 select-none touch-none ${isDragging ? 'cursor-grabbing scale-110 border-orange-400' : 'cursor-grab hover:bg-[#252525] hover:border-orange-400 hover:scale-105 transition-all duration-200'}`}
+        className={`fixed z-[60] bg-[#1a1a1a]/95 border border-orange-500/40 rounded-full p-3 shadow-lg shadow-orange-500/10 select-none touch-none ${isDragging ? 'cursor-grabbing scale-110 border-orange-400' : 'cursor-grab hover:bg-[#252525] hover:border-orange-400 hover:scale-105 transition-all duration-200'} ${!isExpanded && !isDragging ? 'animate-chat-breathe' : ''}`}
         style={getButtonStyle()}
       >
         <div className="relative w-6 h-6">

@@ -244,6 +244,14 @@ export interface PriceSnapshot {
   price: number;
 }
 
+export interface ScoringInfo {
+  time_progress: number;
+  time_progress_percent: number;
+  estimated_win_score: number;
+  estimated_lose_score: number;
+  early_bonus_remaining: number;
+}
+
 export interface CurrentRound {
   id: number;
   symbol: string;
@@ -259,6 +267,7 @@ export interface CurrentRound {
   current_price: number;
   price_change_percent: number;
   price_history: PriceSnapshot[];
+  scoring?: ScoringInfo;
 }
 
 export interface Round {

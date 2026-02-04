@@ -92,9 +92,9 @@ class ScoringService:
             # Early bet wins more: BASE * (1 + bonus * decay) * streak
             score = settings.WIN_SCORE * (1 + settings.EARLY_BONUS * decay) * streak_mult
         else:  # lose
-            # Late bet loses more: BASE * (1 + penalty * (1 - decay))
-            # Note: streak does NOT affect losses (to be friendlier)
-            score = settings.LOSE_SCORE * (1 + settings.LATE_PENALTY * (1 - decay))
+            # Late bet loses more: BASE * (1 + penalty * (1 - decay)) * streak
+            # Streak multiplier now affects BOTH wins and losses (symmetric risk/reward)
+            score = settings.LOSE_SCORE * (1 + settings.LATE_PENALTY * (1 - decay)) * streak_mult
 
         return round(score)
 

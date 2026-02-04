@@ -10,6 +10,7 @@ from app.schemas.common import APIResponse
 from app.schemas.round import RoundOut, RoundListResponse, CurrentRoundResponse, PriceSnapshot, ScoringInfo
 from app.services.market import market_service
 from app.services.scoring import scoring_service
+from app.services.price_history import price_history_service
 from app.core.config import settings
 
 router = APIRouter()
@@ -66,32 +67,49 @@ async def get_current_round(
     price_change = ((current_price - current_round.open_price) /
                     current_round.open_price) * 100 if current_round.open_price else 0
 
-    # Fetch price history from Bitget candles API (1-minute candles)
+    # Fetch price history from database (with auto-backfill if needed)
+    # Data is persisted in price_snapshots table, ensuring consistency across restarts
     price_history: list[PriceSnapshot] = []
     try:
-        # Get round start time as milliseconds (start_time is naive UTC)
-        import calendar
-        round_start_ms = int(calendar.timegm(current_round.start_time.timetuple()) * 1000)
-        now_ms = int(calendar.timegm(now.timetuple()) * 1000)
-        
-        # Fetch 1-minute candles from round start to now
-        candles = await market_service.get_candles(
-            symbol=sym.symbol,
-            product_type=sym.product_type,
-            granularity="1m",
-            start_time=round_start_ms,
-            end_time=now_ms,
-            limit=100
+        # Get history from database, backfill from Bitget API if insufficient
+        history_data = await price_history_service.ensure_round_history(
+            db=db,
+            round=current_round,
+            symbol_product_type=sym.product_type,
+            min_coverage=0.5  # Backfill if less than 50% coverage
         )
         
-        # Convert candles to price snapshots (use close price)
-        for candle in candles:
+        # Also record current price to ensure we capture the latest
+        import calendar
+        now_ms = int(calendar.timegm(now.timetuple()) * 1000)
+        await price_history_service.record_price(
+            db=db,
+            round_id=current_round.id,
+            timestamp_ms=now_ms,
+            price=current_price
+        )
+        
+        # Convert to response format
+        for point in history_data:
             price_history.append(
-                PriceSnapshot(timestamp=candle["timestamp"], price=candle["close"])
+                PriceSnapshot(timestamp=point["timestamp"], price=point["price"])
             )
+        
+        # Add current price if not already in history
+        if not history_data or history_data[-1]["timestamp"] < now_ms - 500:
+            price_history.append(
+                PriceSnapshot(timestamp=now_ms, price=current_price)
+            )
+        
+        logger.debug(f"Returning {len(price_history)} price points for {symbol}")
     except Exception as e:
-        logger.warning(f"Failed to fetch candles for {symbol}: {e}")
-        # Return empty history on error
+        logger.warning(f"Failed to get price history for {symbol}: {e}")
+        # Return at least the current price
+        import calendar
+        now_ms = int(calendar.timegm(now.timetuple()) * 1000)
+        price_history.append(
+            PriceSnapshot(timestamp=now_ms, price=current_price)
+        )
 
     # Check if betting window is open (first 7 minutes of round)
     betting_open = remaining >= settings.BETTING_CUTOFF_REMAINING

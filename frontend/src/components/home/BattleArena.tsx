@@ -11,6 +11,7 @@ import FlipClock from "@/components/ui/FlipClock";
 import api, { KeywordItem } from "@/lib/api";
 import { getStreakInfo, STREAK_THRESHOLDS } from "@/lib/streak";
 import EntranceBanner, { EntranceEvent } from "@/components/ui/EntranceBanner";
+import ScoringPanel from "@/components/ui/ScoringPanel";
 
 interface BotBet {
   id: number;
@@ -39,6 +40,14 @@ interface PriceSnapshot {
   price: number;
 }
 
+interface ScoringInfo {
+  timeProgress: number;
+  timeProgressPercent: number;
+  estimatedWinScore: number;
+  estimatedLoseScore: number;
+  earlyBonusRemaining: number;
+}
+
 interface BattleArenaProps {
   round: {
     id: number;
@@ -49,6 +58,9 @@ interface BattleArenaProps {
     remainingSeconds: number;
     totalDurationSeconds: number;
     priceHistory?: PriceSnapshot[];
+    scoring?: ScoringInfo | null;
+    /** Round start time as Unix timestamp in milliseconds */
+    startTimeMs?: number;
   };
   selectedSymbol: string;
   onSelectSymbol: (symbol: string) => void;
@@ -566,6 +578,7 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                 timeLeft={timeLeft}
                 totalDurationSeconds={round.totalDurationSeconds}
                 priceHistory={round.priceHistory}
+                roundStartMs={round.startTimeMs}
              />
 
              {/* Final Countdown Warning - Inside price card */}
@@ -589,33 +602,41 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                   {formatPrice(currentPrice)}
                 </h1>
                 
-                {/* Fixed-width grid layout to prevent layout shift */}
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 max-w-md mx-auto">
-                    {/* Change % - fixed width container, right aligned content */}
-                    <div className="flex justify-end">
-                        <div className="flex flex-col items-end w-[130px]">
-                            <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Change</span>
-                            <div className={`flex items-center gap-1.5 ${isUp ? 'text-[#FF5722]' : 'text-[#FF4D4D]'}`}>
-                                {isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                <span className="text-lg font-bold tabular-nums">{priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%</span>
-                            </div>
-                        </div>
+                {/* Stats Row: Change | Win | Lose */}
+                <div className="flex items-center justify-center gap-6">
+                  {/* Change % */}
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Change</span>
+                    <div className={`flex items-center gap-1 ${isUp ? 'text-[#FF5722]' : 'text-[#FF4D4D]'}`}>
+                      {isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                      <span className="text-lg font-bold tabular-nums">{priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%</span>
                     </div>
-                    
-                    {/* Divider */}
-                    <div className="w-px h-8 bg-white/10" />
+                  </div>
+                  
+                  <div className="w-px h-8 bg-white/10" />
 
-                    {/* Prize Pool - fixed width container, left aligned content */}
-                    <div className="flex justify-start">
-                        <div className="flex flex-col items-start w-[130px]">
-                            <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Prize Pool</span>
-                            <div className="flex items-center gap-1.5 text-[#EAB308]">
-                                <Wallet size={14} />
-                                <span className="text-lg font-bold tabular-nums">{prizePool.toLocaleString()}</span>
-                                <span className="text-xs font-medium opacity-80">PTS</span>
-                            </div>
-                        </div>
-                    </div>
+                  {/* Win Score - always green */}
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Win</span>
+                    <span className="text-lg font-bold text-[#22C55E]">
+                      +{round.scoring?.estimatedWinScore ?? 11} <span className="text-xs font-medium opacity-70">pts</span>
+                    </span>
+                  </div>
+                  
+                  <div className="w-px h-8 bg-white/10" />
+
+                  {/* Lose Score - always red */}
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Lose</span>
+                    <span className="text-lg font-bold text-[#EF4444]">
+                      {round.scoring?.estimatedLoseScore ?? -8} <span className="text-xs font-medium opacity-70">pts</span>
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Scoring Panel - Bonus indicator, click for details */}
+                <div className="mt-6 flex justify-center">
+                  <ScoringPanel scoring={round.scoring ?? null} />
                 </div>
              </div>
 

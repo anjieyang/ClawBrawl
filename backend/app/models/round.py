@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey, Index
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.database import Base
 
@@ -21,6 +22,14 @@ class Round(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(),
                         onupdate=func.now())
+
+    # Relationship to price snapshots (second-level price history)
+    price_snapshots = relationship(
+        "PriceSnapshot",
+        back_populates="round",
+        cascade="all, delete-orphan",
+        order_by="PriceSnapshot.timestamp"
+    )
 
     __table_args__ = (
         Index("ix_rounds_symbol_start", "symbol", "start_time"),

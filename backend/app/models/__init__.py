@@ -4,8 +4,9 @@ from app.models.bet import Bet
 from app.models.bot import BotScore, BotSymbolStats
 from app.models.danmaku import Danmaku
 from app.models.message import AgentMessage, MessageMention
+from app.models.price_snapshot import PriceSnapshot
 
 __all__ = [
     "Symbol", "Round", "Bet", "BotScore", "BotSymbolStats", "Danmaku",
-    "AgentMessage", "MessageMention"
+    "AgentMessage", "MessageMention", "PriceSnapshot"
 ]

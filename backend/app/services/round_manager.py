@@ -127,8 +127,8 @@ class RoundManager:
             f"Created round {round.id} for {symbol_config.symbol}: {start_time.strftime('%H:%M')} - {end_time.strftime('%H:%M')} @ {open_price}")
         return round
 
-    async def settle_round(self, db: AsyncSession, round_id: int) -> None:
-        """Settle a round and update all bets"""
+    async def settle_round(self, db: AsyncSession, round_id: int) -> Optional[Round]:
+        """Settle a round and update all bets. Returns settled round or None."""
         # Get round with symbol config
         result = await db.execute(
             select(Round, Symbol)
@@ -138,7 +138,7 @@ class RoundManager:
         row = result.one_or_none()
         if not row:
             logger.error(f"Round {round_id} not found")
-            return
+            return None
 
         round, symbol_config = row
 
@@ -146,7 +146,7 @@ class RoundManager:
         if round.status not in ("active", "settling"):
             logger.warning(
                 f"Round {round_id} status is {round.status}, skipping settlement")
-            return
+            return None
 
         try:
             # Update status to settling (if not already)
@@ -184,9 +184,11 @@ class RoundManager:
             )
             bets = bets_result.scalars().all()
 
-            # Get win streaks for all bots in this round
+            # Get win streaks for all bots in this round (with skip penalty applied)
             bot_ids = [b.bot_id for b in bets]
-            win_streaks = await self._get_win_streaks(db, bot_ids)
+            win_streaks = await self._get_win_streaks(
+                db, bot_ids, current_round_id=round_id, symbol=round.symbol
+            )
 
             # Settle each bet
             for bet in bets:
@@ -221,6 +223,8 @@ class RoundManager:
 
             logger.info(
                 f"Settled round {round_id}: {round_result} ({price_change:.4%})")
+            
+            return round
 
         except Exception as e:
             logger.error(f"Settlement failed for round {round_id}: {e}")
@@ -235,13 +239,18 @@ class RoundManager:
     async def _get_win_streaks(
         self,
         db: AsyncSession,
-        bot_ids: list[str]
+        bot_ids: list[str],
+        current_round_id: int = None,
+        symbol: str = None
     ) -> dict[str, int]:
         """
-        Get current win streak for each bot.
+        Get current win streak for each bot, with skip penalty.
+        
+        If a bot skips too many consecutive rounds (beyond grace period),
+        their streak is reset to 0 to prevent "cherry-picking" rounds.
         
         Returns:
-            Dict mapping bot_id to win streak (0 if no streak or on losing streak)
+            Dict mapping bot_id to win streak (0 if no streak, on losing streak, or skipped too many)
         """
         if not bot_ids:
             return {}
@@ -281,6 +290,77 @@ class RoundManager:
                 else:
                     break  # Lose breaks streak
             streaks[bot_id] = streak
+
+        # Apply skip penalty if enabled
+        if settings.STREAK_DECAY_ON_SKIP and current_round_id and symbol:
+            streaks = await self._apply_skip_penalty(
+                db, streaks, bot_ids, current_round_id, symbol
+            )
+
+        return streaks
+
+    async def _apply_skip_penalty(
+        self,
+        db: AsyncSession,
+        streaks: dict[str, int],
+        bot_ids: list[str],
+        current_round_id: int,
+        symbol: str
+    ) -> dict[str, int]:
+        """
+        Apply streak penalty for bots who skipped too many rounds.
+        
+        If a bot has a streak but skipped more than GRACE rounds recently,
+        reset their streak to 0.
+        """
+        if not bot_ids:
+            return streaks
+
+        # Get recent N settled rounds for this symbol
+        window_size = settings.STREAK_ACTIVITY_WINDOW_ROUNDS
+        recent_rounds_result = await db.execute(
+            select(Round.id)
+            .where(Round.symbol == symbol, Round.status == "settled")
+            .order_by(Round.id.desc())
+            .limit(window_size)
+        )
+        recent_round_ids = [r[0] for r in recent_rounds_result.all()]
+
+        if not recent_round_ids:
+            return streaks
+
+        # Get bets in these rounds for each bot
+        bets_result = await db.execute(
+            select(Bet.bot_id, Bet.round_id)
+            .where(
+                Bet.bot_id.in_(bot_ids),
+                Bet.round_id.in_(recent_round_ids)
+            )
+        )
+        
+        # Build set of (bot_id, round_id) pairs
+        bot_round_pairs = {(row[0], row[1]) for row in bets_result.all()}
+
+        # Check each bot's participation in recent rounds (ordered from most recent)
+        for bot_id in bot_ids:
+            if streaks.get(bot_id, 0) <= 0:
+                continue  # No streak to protect
+            
+            # Count consecutive skipped rounds from most recent
+            consecutive_skips = 0
+            for round_id in recent_round_ids:
+                if (bot_id, round_id) not in bot_round_pairs:
+                    consecutive_skips += 1
+                else:
+                    break  # Found a bet, stop counting
+            
+            # If skipped more than grace period, reset streak
+            if consecutive_skips > settings.STREAK_SKIP_GRACE_ROUNDS:
+                logger.info(
+                    f"🎯 Streak penalty: {bot_id} skipped {consecutive_skips} rounds "
+                    f"(grace={settings.STREAK_SKIP_GRACE_ROUNDS}), streak reset from {streaks[bot_id]} to 0"
+                )
+                streaks[bot_id] = 0
 
         return streaks
 
