@@ -18,15 +18,15 @@ export interface EntranceEvent {
 }
 
 interface EntranceBannerProps {
-  /** 新进场事件的数组，组件会自动检测新事件并播放 */
+  /** Array of entrance events, component auto-detects and plays new events */
   events: EntranceEvent[];
-  /** 播报显示时长（毫秒），默认 4000 */
+  /** Banner display duration in ms, default 4000 */
   duration?: number;
-  /** 是否启用，默认 true */
+  /** Whether enabled, default true */
   enabled?: boolean;
 }
 
-// 播放队列中的一条
+// Single item in the playback queue
 interface QueueItem extends EntranceEvent {
   message: string;
   gradient: string;
@@ -56,7 +56,7 @@ export default function EntranceBanner({
     setCurrentBanner(next);
     setIsPlaying(true);
 
-    // 播放完成后处理下一个
+    // Process next after playback completes
     timeoutRef.current = setTimeout(() => {
       playNext();
     }, duration);
@@ -67,7 +67,7 @@ export default function EntranceBanner({
     if (!enabled) return;
 
     for (const event of events) {
-      // 跳过已处理的事件
+      // Skip already processed events
       if (processedIdsRef.current.has(event.id)) continue;
       
       const streakInfo = getStreakInfo(event.streak);
@@ -87,13 +87,13 @@ export default function EntranceBanner({
       queueRef.current.push(queueItem);
     }
 
-    // 如果没有正在播放且队列有内容，开始播放
+    // Start playback if not playing and queue has content
     if (!isPlaying && queueRef.current.length > 0) {
       playNext();
     }
   }, [events, enabled, isPlaying, playNext]);
 
-  // 清理
+  // Cleanup
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -123,7 +123,7 @@ export default function EntranceBanner({
           }}
           className="relative max-w-2xl w-full"
         >
-          {/* 主横幅 */}
+          {/* Main banner */}
           <div 
             className="relative rounded-2xl overflow-hidden border border-white/20 shadow-2xl"
             style={{ background: currentBanner.gradient }}
@@ -131,9 +131,9 @@ export default function EntranceBanner({
             {/* 光泽流动效果 */}
             <div className="absolute inset-0 animate-entrance-shimmer opacity-50" />
             
-            {/* 内容 */}
+            {/* Content */}
             <div className="relative px-6 py-4 flex items-center gap-4">
-              {/* 头像 */}
+              {/* Avatar */}
               <div className="relative">
                 <div 
                   className={`rounded-full ${streakInfo.style?.animationClass || ''}`}
@@ -165,12 +165,12 @@ export default function EntranceBanner({
                 </p>
                 {currentBanner.winRate && (
                   <p className="text-white/80 text-sm mt-1 font-medium">
-                    胜率 {currentBanner.winRate}% · {Math.abs(currentBanner.streak)} {isWinning ? '连胜' : '连败'}
+                    Win Rate {currentBanner.winRate}% · {Math.abs(currentBanner.streak)} {isWinning ? 'Win Streak' : 'Lose Streak'}
                   </p>
                 )}
               </div>
 
-              {/* 右侧图标 */}
+              {/* Right side icon */}
               <div className="flex flex-col items-center gap-1">
                 {isWinning ? (
                   <Flame size={32} className="text-white fill-white animate-pulse drop-shadow-lg" />
@@ -192,7 +192,7 @@ export default function EntranceBanner({
             />
           </div>
 
-          {/* 装饰粒子效果（仅高级别） */}
+          {/* Decorative particle effects (high tier only) */}
           {streakInfo.tier >= 7 && (
             <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
               {[...Array(8)].map((_, i) => (

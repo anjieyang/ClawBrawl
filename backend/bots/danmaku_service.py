@@ -33,41 +33,36 @@ class DanmakuService:
         "#54A0FF",  # 蓝
     ]
     
-    # 昵称池（匿名用户风格）
+    # 昵称池（多语言匿名用户风格）
     NICKNAMES = [
-        "韭菜本韭",
-        "梭哈战士",
-        "抄底大师",
-        "山顶站岗",
-        "钻石手",
-        "纸手玩家",
-        "空军司令",
-        "多头先锋",
-        "量化小白",
-        "老韭菜",
-        "新韭菜",
-        "币圈萌新",
-        "合约杀手",
-        "爆仓专家",
-        "止损达人",
-        "FOMO患者",
-        "佛系持币",
-        "短线选手",
-        "趋势猎人",
-        "逆势而为",
-        "随缘交易",
-        "技术派",
-        "消息党",
-        "巨鲸观察",
-        "散户代表",
+        # 中文昵称
+        "韭菜本韭", "梭哈战士", "抄底大师", "山顶站岗", "钻石手",
+        "纸手玩家", "空军司令", "多头先锋", "量化小白", "老韭菜",
+        "新韭菜", "币圈萌新", "合约杀手", "爆仓专家", "止损达人",
+        "FOMO患者", "佛系持币", "短线选手", "趋势猎人", "逆势而为",
+        "随缘交易", "技术派", "消息党", "巨鲸观察", "散户代表",
+        "杠杆狂魔", "永远满仓", "被套十年", "一夜暴富", "韭菜根",
+        # 英文昵称
+        "DiamondHands", "PaperHand", "BullKing", "BearHunter", "WhaleFinder",
+        "DipBuyer", "TopBuyer", "HODL4Life", "RektKing", "MoonBoi",
+        "ShortSqueezer", "LiquidatedAgain", "FOMOWarrior", "DumpCatcher",
+        "CryptoVet", "DegenTrader", "LeverageMaxi", "StopLossHater",
+        # 日文昵称
+        "ガチホ民", "損切り苦手", "天井買い", "底売り名人", "草コイナー",
+        "爆益マン", "含み損仲間", "億り人志望", "養分です", "退場寸前",
+        # 韩文昵称
+        "존버충", "떡상기원", "코린이", "개미투자자", "물린사람",
+        "손절각", "불타기중", "다이아손", "숏충이", "롱충이",
+        # 混合风格
+        "BTC信仰者", "All-in党", "To月球", "WAGMI战士", "NGMI选手",
     ]
     
     def __init__(
         self,
         api_base: str = "http://localhost:8000",
         symbol: str = "BTCUSDT",
-        interval_range: tuple[int, int] = (8, 20),  # 发送间隔范围（秒）
-        batch_size_range: tuple[int, int] = (1, 3),  # 每批生成数量
+        interval_range: tuple[int, int] = (15, 35),  # 发送间隔范围（秒）- 增加间隔避免限流
+        batch_size_range: tuple[int, int] = (1, 2),  # 每批生成数量 - 减少每批数量
     ):
         self.api_base = api_base
         self.symbol = symbol
@@ -128,10 +123,11 @@ class DanmakuService:
                 if data.get("success"):
                     return True
                 else:
-                    # 可能是频率限制，静默处理
-                    if data.get("error") == "RATE_LIMITED":
-                        return False
-                    print(f"[DanmakuService] API error: {data.get('error')}")
+                    # 打印错误信息
+                    print(f"[DanmakuService] API error: {data.get('error')} - {data.get('hint', '')}", flush=True)
+                    return False
+            else:
+                print(f"[DanmakuService] HTTP {response.status_code}: {response.text[:100]}", flush=True)
             return False
             
         except Exception as e:
@@ -160,18 +156,18 @@ class DanmakuService:
                     
                     # 生成弹幕
                     danmaku_list = await self.generator.generate_danmaku(ctx, count=batch_size)
-                    print(f"[DanmakuService] Generated {len(danmaku_list)} danmaku: {danmaku_list}")
+                    print(f"[DanmakuService] Generated {len(danmaku_list)} danmaku: {danmaku_list}", flush=True)
                     
                     # 发送弹幕（带随机延迟）
                     for danmaku in danmaku_list:
                         success = await self._send_danmaku(danmaku)
                         if success:
-                            print(f"[DanmakuService] Sent: {danmaku}")
+                            print(f"[DanmakuService] ✅ Sent: {danmaku}", flush=True)
                         else:
-                            print(f"[DanmakuService] Failed to send: {danmaku}")
+                            print(f"[DanmakuService] ❌ Failed: {danmaku}", flush=True)
                         
-                        # 每条弹幕之间加点延迟
-                        await asyncio.sleep(random.uniform(1.5, 4.0))
+                        # 每条弹幕之间加点延迟（增加延迟避免限流）
+                        await asyncio.sleep(random.uniform(4.0, 8.0))
                 else:
                     print("[DanmakuService] Failed to build context")
                 

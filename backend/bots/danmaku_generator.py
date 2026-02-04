@@ -44,36 +44,36 @@ class DanmakuContext:
     
     @property
     def market_sentiment(self) -> str:
-        """市场情绪判断"""
+        """Market sentiment assessment"""
         if self.change_24h > 0.03:
-            return "极度贪婪"
+            return "extreme greed"
         elif self.change_24h > 0.01:
-            return "贪婪"
+            return "greed"
         elif self.change_24h < -0.03:
-            return "极度恐惧"
+            return "extreme fear"
         elif self.change_24h < -0.01:
-            return "恐惧"
+            return "fear"
         else:
-            return "中性"
+            return "neutral"
     
     def to_prompt_text(self) -> str:
-        """转换为 prompt 文本"""
+        """Convert to prompt text"""
         lines = [
-            "## 实时市场数据",
-            f"- BTC 价格: ${self.price:,.2f}",
-            f"- 24h 涨跌: {self.change_24h * 100:+.2f}%",
-            f"- 资金费率: {self.funding_rate:.4f}",
-            f"- 买卖盘比: {self.bid_ask_ratio:.2f} ({'买盘强' if self.bid_ask_ratio > 1 else '卖盘强'})",
+            "## Real-time Market Data",
+            f"- BTC Price: ${self.price:,.2f}",
+            f"- 24h Change: {self.change_24h * 100:+.2f}%",
+            f"- Funding Rate: {self.funding_rate:.4f}",
+            f"- Bid/Ask Ratio: {self.bid_ask_ratio:.2f} ({'bids stronger' if self.bid_ask_ratio > 1 else 'asks stronger'})",
             "",
-            "## 场上情况",
-            f"- 多头下注: {self.long_count} 人",
-            f"- 空头下注: {self.short_count} 人",
-            f"- 多空比: {self.long_short_ratio:.2f}",
+            "## Arena Situation",
+            f"- Long bets: {self.long_count}",
+            f"- Short bets: {self.short_count}",
+            f"- Long/Short Ratio: {self.long_short_ratio:.2f}",
             "",
-            "## 市场状态",
-            f"- 价格趋势: {self.price_trend}",
-            f"- 波动率: {self.volatility}",
-            f"- 市场情绪: {self.market_sentiment}",
+            "## Market State",
+            f"- Price Trend: {self.price_trend}",
+            f"- Volatility: {self.volatility}",
+            f"- Market Sentiment: {self.market_sentiment}",
         ]
         return "\n".join(lines)
 
@@ -91,6 +91,29 @@ class DanmakuGenerator:
         "meme_joke",         # 梗和玩笑
         "price_reaction",    # 价格反应
         "fomo_panic",        # FOMO/恐慌
+    ]
+    
+    # 语言分布
+    LANGUAGES = [
+        ("en", 0.45),   # 英文 45%
+        ("zh", 0.30),   # 中文 30%
+        ("ja", 0.10),   # 日文 10%
+        ("ko", 0.08),   # 韩文 8%
+        ("mixed", 0.07), # 中英混合 7%
+    ]
+    
+    # 人格类型
+    PERSONALITIES = [
+        "veteran_trader",    # 老韭菜，见多识广，爱教训新人
+        "newbie",            # 萌新，懵懂，问问题
+        "meme_lord",         # 玩梗大师，全是表情和梗
+        "whale_pretender",   # 装大户，吹牛
+        "doomer",            # 末日论者，总觉得要崩
+        "moon_boy",          # 永远看涨，无脑多
+        "technical_analyst", # 技术派，说K线、指标
+        "philosopher",       # 哲学家，说人生道理
+        "gambler",           # 赌徒心态，梭哈党
+        "troll",             # 杠精，专门抬杠
     ]
     
     def __init__(self):
@@ -171,6 +194,16 @@ class DanmakuGenerator:
         
         return random.choices(styles, weights=probs, k=1)[0]
     
+    def _choose_language(self) -> str:
+        """随机选择语言"""
+        langs = [lang for lang, _ in self.LANGUAGES]
+        weights = [weight for _, weight in self.LANGUAGES]
+        return random.choices(langs, weights=weights, k=1)[0]
+    
+    def _choose_personality(self) -> str:
+        """随机选择人格"""
+        return random.choice(self.PERSONALITIES)
+    
     async def generate_danmaku(
         self,
         ctx: DanmakuContext,
@@ -186,11 +219,13 @@ class DanmakuGenerator:
         Returns:
             弹幕列表
         """
-        # 选择风格
+        # 选择风格、语言、人格
         style = self._choose_style(ctx)
+        language = self._choose_language()
+        personality = self._choose_personality()
         
-        system_prompt = self._build_system_prompt(style)
-        user_prompt = self._build_user_prompt(ctx, style, count)
+        system_prompt = self._build_system_prompt(style, language, personality)
+        user_prompt = self._build_user_prompt(ctx, style, count, language, personality)
         
         # gpt-5-mini 是 reasoning model，不支持 temperature
         # 使用 max_completion_tokens 而不是 max_tokens
@@ -224,66 +259,153 @@ class DanmakuGenerator:
             print(f"[DanmakuGenerator] Error: {e}")
             return []
     
-    def _build_system_prompt(self, style: str) -> str:
+    def _build_system_prompt(self, style: str, language: str, personality: str) -> str:
         """构建系统 prompt"""
         style_descriptions = {
-            "bullish_hype": "你是一个狂热的多头，疯狂看涨，要用最激动人心的方式鼓动大家做多！",
-            "bearish_fud": "你是一个坚定的空头，看跌市场，要散布恐惧让大家意识到风险！",
-            "taunt_bulls": "你要嘲讽那些做多的人，他们太天真了，等着被收割吧！",
-            "taunt_bears": "你要嘲讽那些做空的人，他们错过了行情，要被轧空了！",
-            "neutral_comment": "你是一个冷静的观察者，发表一些有见地但中立的评论。",
-            "meme_joke": "你是一个币圈老韭菜，用梗、玩笑、自嘲来活跃气氛！",
-            "price_reaction": "你对价格变动有强烈反应，涨了就嗨，跌了就慌！",
-            "fomo_panic": "你要制造 FOMO（错过恐惧）或恐慌情绪，让大家坐不住！",
+            "bullish_hype": "极度看涨，疯狂喊多",
+            "bearish_fud": "传播恐慌，警告风险",
+            "taunt_bulls": "嘲讽多头，等着看笑话",
+            "taunt_bears": "嘲讽空头，说他们要被轧",
+            "neutral_comment": "冷静观察，理性评论",
+            "meme_joke": "玩梗搞笑，自嘲调侃",
+            "price_reaction": "对价格变化强烈反应",
+            "fomo_panic": "制造FOMO或恐慌情绪",
         }
         
-        return f"""你是 Claw Brawl 竞技场的弹幕生成器。
+        personality_descriptions = {
+            "veteran_trader": "老韭菜，在币圈摸爬滚打多年，喜欢教训新人，动不动就'我当年xxx'",
+            "newbie": "萌新小白，刚入场，很多东西不懂，会问问题，说话带点可爱",
+            "meme_lord": "玩梗大师，全是表情包和网络梗，很少说正经话",
+            "whale_pretender": "装大户，吹牛说自己仓位很大，其实可能就几百块",
+            "doomer": "末日论者，总觉得要崩盘，什么都能扯到归零",
+            "moon_boy": "永远看涨派，无脑多，坚信会暴涨，满嘴'to the moon'",
+            "technical_analyst": "技术分析师，说K线、均线、指标，喜欢画线",
+            "philosopher": "哲学家型，把炒币和人生道理结合，说一些感悟",
+            "gambler": "赌徒心态，梭哈党，要么暴富要么归零",
+            "troll": "杠精，专门抬杠，喜欢唱反调",
+        }
+        
+        language_instructions = {
+            "zh": """语言要求：纯中文
+示例：
+- "冲冲冲！🚀"
+- "空军集合！📉"
+- "又买在山顶了😭"
+- "稳住，我们能赢"
+- "主力在洗盘"
+- "钻石手💎不动摇"
+- "有没有人亏钱的"
+- "我先润了"
+- "这波我直接满仓"
+- "早就说了要跌"
+""",
+            "en": """语言要求：纯英文
+示例：
+- "LFG! 🚀"
+- "Bears r fuk"
+- "Bought the top again 😭"
+- "This is the play!"
+- "RIP bulls"
+- "Diamond hands 💎"
+- "Where's my stop loss..."
+- "WAGMI"
+- "Wen moon?"
+- "ngmi"
+""",
+            "ja": """语言要求：日文
+示例：
+- "いけー！🚀"
+- "ショート勢死亡w"
+- "また高値掴み😭"
+- "ガチホ💎"
+- "損切りできない..."
+- "爆益きたー！"
+- "これはやばい"
+- "草コイン買っとけ"
+- "含み損仲間いる？"
+- "月まで行くぞ🌙"
+""",
+            "ko": """语言要求：韩文
+示例：
+- "가즈아! 🚀"
+- "숏충이 저승길ㅋㅋ"
+- "또 고점 매수함😭"
+- "존버💎"
+- "손절 못해..."
+- "떡상! 떡상!"
+- "물렸다..."
+- "코인판 접는다"
+- "다이아몬드 손"
+- "달까지 가자🌙"
+""",
+            "mixed": """语言要求：中英混合（code-switching风格）
+示例：
+- "这波pump太猛了🚀"
+- "空军要get rekt了"
+- "Diamond hands兄弟们💎"
+- "我all in了"
+- "这是whale在操盘"
+- "FOMO情绪来了"
+- "hold住别panic"
+- "Entry point不错"
+- "止损了，GG"
+- "To the moon！冲！"
+""",
+        }
+        
+        return f"""你是 Claw Brawl 竞技场的弹幕生成器。生成像真实观众发送的弹幕。
 
-## 你的角色
-{style_descriptions.get(style, "生成有趣的弹幕")}
+## 你的人设
+{personality_descriptions.get(personality, "普通观众")}
+
+## 当前情绪倾向
+{style_descriptions.get(style, "随意评论")}
+
+{language_instructions.get(language, language_instructions["zh"])}
 
 ## 弹幕规则
-1. 每条弹幕 5-40 个字符，简短有力
-2. 要有情绪、有煽动性、能引起共鸣
-3. 可以用中文、英文或混合
-4. 多用 emoji 表达情绪：🚀🔥💎😭💀🤡👀📈📉
-5. 可以用币圈黑话：梭哈、抄底、山顶、割韭菜、钻石手、纸手等
-6. 要多样化，不要重复
-7. 可以适度夸张、玩梗、自嘲
-8. 要像真实用户发的弹幕，不要太正式
+1. 每条弹幕 3-35 字符，简短有力
+2. 要有情绪，有感染力
+3. 善用 emoji：🚀🔥💎😭💀🤡👀📈📉🌙💰🎰
+4. 符合你的人设说话
+5. 像真实用户，不要太正式
+6. 可以夸张、玩梗、自嘲
+7. 每条风格要不同，不要重复
 
-## 风格示例
-- "🚀 冲冲冲！"
-- "空军准备好被收割了吗"
-- "又在山顶站岗了 😭"
-- "这波稳了！"
-- "熊来了快跑！"
-- "Diamond hands 💎"
-- "我的止损呢..."
-- "庄家在洗盘"
-- "FOMO 了 FOMO 了"
-- "抄底抄在半山腰 🤡"
+## 禁止
+- 不要太长
+- 不要说教
+- 不要用敬语
+- 不要重复
 """
     
-    def _build_user_prompt(self, ctx: DanmakuContext, style: str, count: int) -> str:
-        """构建用户 prompt"""
+    def _build_user_prompt(
+        self, ctx: DanmakuContext, style: str, count: int, language: str, personality: str
+    ) -> str:
+        """Build user prompt"""
+        lang_names = {"zh": "中文", "en": "英文", "ja": "日文", "ko": "韩文", "mixed": "中英混合"}
+        
         return f"""{ctx.to_prompt_text()}
 
-## 当前风格: {style}
+## 生成任务
+- 语言：{lang_names.get(language, language)}
+- 人设：{personality}
+- 情绪：{style}
+- 数量：{count}条
 
-请根据以上市场数据和场上情况，生成 {count} 条有情绪、煽动性的弹幕。
+根据上面的市场数据和竞技场情况，用你的人设视角，生成{count}条弹幕。
 
-返回 JSON 格式:
+返回 JSON 格式：
 {{
     "danmaku": ["弹幕1", "弹幕2", "弹幕3"]
 }}
 
-要求:
-- 每条 5-40 字符
-- 要多样化，风格各异
-- 要结合当前市场数据（价格、涨跌、多空比等）
-- 要有煽动性，能带动气氛
-- 可以嘲讽、鼓励、恐慌、玩梗，但要自然
+要求：
+- 每条 3-35 字符
+- 风格多样，不要重复
+- 可以提及价格、涨跌、多空比
+- 要有情绪感染力
+- 符合人设的说话方式
 """
 
     async def build_context(

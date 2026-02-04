@@ -44,7 +44,7 @@ const LOSE_TITLES: Record<number, StreakTitle> = {
   10: { emoji: '💸', title: 'Bag Holder', titleEn: 'Bag Holder', description: 'The eternal contrarian...' },
 };
 
-// ============ 样式配置 ============
+// ============ Style Configuration ============
 export interface StreakStyle {
   // 名字发光效果
   textGlow: string;
@@ -138,10 +138,10 @@ const LOSE_STYLES: Record<number, StreakStyle> = {
   },
 };
 
-// ============ 工具函数 ============
+// ============ Utility Functions ============
 
 /**
- * 获取 streak 对应的等级（用于查找配置）
+ * Get the tier level for a given streak (used for config lookup)
  */
 export function getStreakTier(streak: number): number {
   const absStreak = Math.abs(streak);
@@ -167,7 +167,7 @@ export function getStreakTitle(streak: number): StreakTitle | null {
 }
 
 /**
- * 获取 streak 对应的样式
+ * Get the style for a given streak
  */
 export function getStreakStyle(streak: number): StreakStyle | null {
   const tier = getStreakTier(streak);
@@ -202,7 +202,7 @@ export function getStreakInfo(streak: number): StreakInfo {
 }
 
 /**
- * 生成进场播报文案
+ * Generate entrance announcement message
  */
 export function generateEntranceMessage(
   botName: string,
@@ -211,46 +211,46 @@ export function generateEntranceMessage(
   winRate?: number
 ): string {
   const info = getStreakInfo(streak);
-  const directionText = direction === 'long' ? '做多' : '做空';
+  const directionText = direction === 'long' ? 'LONG' : 'SHORT';
   const directionEmoji = direction === 'long' ? '📈' : '📉';
   
   if (!info.title) {
-    return `${botName} ${directionText}入场！`;
+    return `${botName} goes ${directionText}!`;
   }
   
-  const statsText = winRate ? `胜率 ${winRate}%` : '';
-  const streakText = `${Math.abs(streak)} ${info.isWinning ? '连胜' : '连败'}`;
+  const statsText = winRate ? `Win Rate ${winRate}%` : '';
+  const streakText = `${Math.abs(streak)} ${info.isWinning ? 'Win Streak' : 'Lose Streak'}`;
   
-  // 根据等级生成不同风格的文案
+  // Generate different styles based on tier
   if (info.tier >= 10) {
     if (info.isWinning) {
-      return `${info.title.emoji}${info.title.emoji}${info.title.emoji} ${info.title.title} ${botName} ${directionEmoji}${directionText}入场！${streakText}${statsText ? `，${statsText}` : ''} ${info.title.emoji}${info.title.emoji}${info.title.emoji}`;
+      return `${info.title.emoji}${info.title.emoji}${info.title.emoji} ${info.title.title} ${botName} ${directionEmoji} goes ${directionText}! ${streakText}${statsText ? `, ${statsText}` : ''} ${info.title.emoji}${info.title.emoji}${info.title.emoji}`;
     } else {
-      return `${info.title.emoji} ${info.title.title} ${botName} 再次出手${directionText}！${streakText}，你敢跟吗？`;
+      return `${info.title.emoji} ${info.title.title} ${botName} strikes again with ${directionText}! ${streakText}, dare to follow?`;
     }
   }
   
   if (info.tier >= 7) {
     if (info.isWinning) {
-      return `${info.title.emoji} ${info.title.title} ${botName} 驾到！${streakText}的TA这次${directionText}了 ${directionEmoji}`;
+      return `${info.title.emoji} ${info.title.title} ${botName} has arrived! Going ${directionText} with ${streakText} ${directionEmoji}`;
     } else {
-      return `${info.title.emoji} ${botName} ${info.title.title}再现！${streakText}后选择${directionText}`;
+      return `${info.title.emoji} ${botName} ${info.title.title} returns! Choosing ${directionText} after ${streakText}`;
     }
   }
   
   if (info.tier >= 5) {
     if (info.isWinning) {
-      return `${info.title.emoji} ${botName} ${info.title.title}！当前${streakText}，${directionText}入场 ${directionEmoji}`;
+      return `${info.title.emoji} ${botName} ${info.title.title}! Currently at ${streakText}, going ${directionText} ${directionEmoji}`;
     } else {
-      return `${info.title.emoji} ${botName} 成为${info.title.title}！${streakText}后${directionText}`;
+      return `${info.title.emoji} ${botName} becomes ${info.title.title}! Going ${directionText} after ${streakText}`;
     }
   }
   
-  return `${info.title.emoji} ${botName} ${directionText}入场！${streakText}`;
+  return `${info.title.emoji} ${botName} goes ${directionText}! ${streakText}`;
 }
 
 /**
- * 获取进场播报的背景渐变色（不透明）
+ * Get entrance banner background gradient (opaque)
  */
 export function getEntranceBannerGradient(streak: number): string {
   const info = getStreakInfo(streak);

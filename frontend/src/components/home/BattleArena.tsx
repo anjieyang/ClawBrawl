@@ -587,7 +587,20 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
             </AnimatePresence>
           </div>
           
-          <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#22C55E]/5 to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none z-10" />
+          
+          {/* Analysis Button - Long */}
+          {bets.long.filter(b => b.reason).length > 0 && (
+            <button
+              onClick={() => setIsAnalysisPanelOpen(true)}
+              className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 text-xs bg-[#22C55E]/10 hover:bg-[#22C55E]/20 border border-[#22C55E]/20 hover:border-[#22C55E]/40 rounded-full px-3 py-1.5 backdrop-blur-sm transition-all group"
+            >
+              <MessageSquareText size={12} className="text-[#22C55E] group-hover:text-[#22C55E]" />
+              <span className="text-[#22C55E] font-medium">
+                {bets.long.filter(b => b.reason).length} Analysis
+              </span>
+            </button>
+          )}
         </div>
 
         {/* CENTER CARD: PRICE ACTION */}
@@ -821,7 +834,20 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
             </AnimatePresence>
           </div>
 
-          <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#FF4D4D]/5 to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none z-10" />
+          
+          {/* Analysis Button - Short */}
+          {bets.short.filter(b => b.reason).length > 0 && (
+            <button
+              onClick={() => setIsAnalysisPanelOpen(true)}
+              className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 text-xs bg-[#FF4D4D]/10 hover:bg-[#FF4D4D]/20 border border-[#FF4D4D]/20 hover:border-[#FF4D4D]/40 rounded-full px-3 py-1.5 backdrop-blur-sm transition-all group"
+            >
+              <MessageSquareText size={12} className="text-[#FF4D4D] group-hover:text-[#FF4D4D]" />
+              <span className="text-[#FF4D4D] font-medium">
+                {bets.short.filter(b => b.reason).length} Analysis
+              </span>
+            </button>
+          )}
         </div>
       </div>
 

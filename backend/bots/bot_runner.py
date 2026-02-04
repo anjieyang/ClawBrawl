@@ -22,6 +22,7 @@ from .chat_generator import get_chat_generator, RecentMessage
 from .news_client import get_news_context
 from .register_all import load_credentials
 from .danmaku_service import DanmakuService
+from .moltbook_poster import get_moltbook_poster, MoltbookPoster
 
 # Setup logging
 logging.basicConfig(
@@ -50,6 +51,10 @@ class BotRunner:
         self._next_post_interval: int = random.randint(*self._post_interval_range)
         # 智能弹幕服务
         self._danmaku_service: Optional[DanmakuService] = None
+        # Moltbook 运营
+        self._moltbook_poster: Optional[MoltbookPoster] = None
+        self._last_moltbook_activity: Optional[datetime] = None
+        self._moltbook_interval_range = (1800, 3600)  # 30-60 分钟（遵守 rate limit）
 
     async def initialize(self) -> bool:
         """Load credentials and validate setup"""
@@ -641,9 +646,20 @@ class BotRunner:
             replace_existing=True,
         )
 
+        # 每5分钟检查 Moltbook 活动（实际发送由 30-60 分钟间隔控制）
+        self.scheduler.add_job(
+            self.run_moltbook_activity,
+            "interval",
+            minutes=5,
+            id="moltbook_activity",
+            name="Moltbook Activity (Posts, Engagement)",
+            replace_existing=True,
+        )
+
         self.scheduler.start()
         logger.info("🚀 Scheduler started - checking every minute for new rounds")
         logger.info("📝 Idle activity: chat every 45-90s, posts every 60-120s (randomized)")
+        logger.info("🦞 Moltbook activity: every 30-60 minutes")
 
     async def start_danmaku_service(self) -> None:
         """启动智能弹幕服务"""
@@ -666,6 +682,52 @@ class BotRunner:
             self._danmaku_service = None
             logger.info("🎯 Smart danmaku service stopped")
 
+    async def start_moltbook_service(self) -> None:
+        """启动 Moltbook 运营服务"""
+        self._moltbook_poster = get_moltbook_poster()
+        if await self._moltbook_poster.initialize():
+            logger.info("🦞 Moltbook poster service started")
+        else:
+            logger.warning("⚠️ Moltbook poster not initialized (no credentials?)")
+            self._moltbook_poster = None
+
+    async def run_moltbook_activity(self) -> None:
+        """Moltbook 活动：发帖、互动、推广"""
+        if not self._moltbook_poster:
+            return
+
+        now = datetime.now(timezone.utc)
+
+        # 检查是否到了活动时间（30-60分钟间隔）
+        should_act = True
+        if self._last_moltbook_activity:
+            elapsed = (now - self._last_moltbook_activity).total_seconds()
+            next_interval = random.randint(*self._moltbook_interval_range)
+            if elapsed < next_interval:
+                should_act = False
+
+        if not should_act:
+            return
+
+        self._last_moltbook_activity = now
+
+        # 随机选择活动类型
+        activity = random.choices(
+            ["process_events", "random_post", "engage_feed"],
+            weights=[0.4, 0.3, 0.3],  # 优先处理事件
+            k=1,
+        )[0]
+
+        try:
+            if activity == "process_events":
+                await self._moltbook_poster.process_events()
+            elif activity == "random_post":
+                await self._moltbook_poster.post_random_content()
+            elif activity == "engage_feed":
+                await self._moltbook_poster.engage_with_feed()
+        except Exception as e:
+            logger.warning(f"Moltbook activity failed: {e}")
+
     async def run_once(self) -> None:
         """Run one betting round immediately"""
         if not await self.initialize():
@@ -687,6 +749,9 @@ class BotRunner:
         # 启动智能弹幕服务
         if enable_danmaku:
             await self.start_danmaku_service()
+
+        # 启动 Moltbook 运营服务
+        await self.start_moltbook_service()
 
         logger.info("🦀 Bot Runner started. Press Ctrl+C to stop.")
 
