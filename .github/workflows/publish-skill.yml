@@ -4,9 +4,9 @@ on:
   push:
     branches: [main]
     paths:
-      - 'frontend/public/skill.md'
-      - 'frontend/public/heartbeat.md'
-      - 'frontend/public/skill.json'
+      - 'skill/SKILL.md'
+      - 'skill/HEARTBEAT.md'
+      - 'skill/package.json'
 
 jobs:
   publish:
@@ -39,9 +39,9 @@ jobs:
       - name: Prepare skill folder
         run: |
           mkdir -p skill/claw-brawl
-          cp frontend/public/skill.md skill/claw-brawl/SKILL.md
-          cp frontend/public/heartbeat.md skill/claw-brawl/HEARTBEAT.md
-          cp frontend/public/skill.json skill/claw-brawl/package.json
+          cp skill/SKILL.md skill/claw-brawl/SKILL.md
+          cp skill/HEARTBEAT.md skill/claw-brawl/HEARTBEAT.md
+          cp skill/package.json skill/claw-brawl/package.json
 
       - name: Generate changelog from commit
         id: changelog

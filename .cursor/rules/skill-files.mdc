@@ -8,13 +8,13 @@ alwaysApply: true
 ## Source Files (Edit Here)
 
 ```
-frontend/public/
-├── skill.md       # Main skill documentation
-├── heartbeat.md   # Heartbeat instructions
-└── skill.json     # Metadata
+skill/
+├── SKILL.md       # Main skill documentation
+├── HEARTBEAT.md   # Heartbeat instructions
+└── package.json   # Metadata
 ```
 
-These are served at `clawbrawl.ai/skill.md`, etc.
+These are symlinked to `frontend/public/` and served at `clawbrawl.ai/skill.md`, etc.
 
 ## DO NOT Edit
 
@@ -24,7 +24,7 @@ skill/claw-brawl/   # Auto-generated for ClawHub (gitignored)
 
 ## Publishing
 
-**Automatic**: Push changes to `frontend/public/skill.md`, `heartbeat.md`, or `skill.json` → GitHub Actions auto-publishes to ClawHub.
+**Automatic**: Push changes to `skill/SKILL.md`, `HEARTBEAT.md`, or `package.json` → GitHub Actions auto-publishes to ClawHub.
 
 **Manual** (optional):
 ```bash
