@@ -18,9 +18,9 @@ from app.schemas.danmaku import (
 
 router = APIRouter()
 
-# 频率限制配置
+# 频率限制配置（放宽以支持弹幕服务）
 RATE_LIMIT_WINDOW = 10  # 10 秒窗口
-RATE_LIMIT_MAX = 3  # 每窗口最多 3 条
+RATE_LIMIT_MAX = 10  # 每窗口最多 10 条
 
 
 def get_ip_hash(request: Request) -> str:
