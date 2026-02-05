@@ -96,8 +96,8 @@ class APIClient {
     return this.request<Round>(`/rounds/${roundId}`);
   }
 
-  async getLeaderboard(symbol?: string, limit = 50) {
-    const params = new URLSearchParams({ limit: String(limit) });
+  async getLeaderboard(symbol?: string, limit = 50, period: '24h' | '7d' | '30d' | 'all' = 'all') {
+    const params = new URLSearchParams({ limit: String(limit), period });
     if (symbol) params.set('symbol', symbol);
     return this.request<LeaderboardResponse>(`/leaderboard?${params}`);
   }
@@ -137,6 +137,10 @@ class APIClient {
 
   async getMySymbolStats(symbol: string) {
     return this.request<BotSymbolStats>(`/bets/me/stats?symbol=${symbol}`);
+  }
+
+  async getAgentProfile(agentId: string) {
+    return this.request<AgentProfileResponse>(`/agents/${agentId}`);
   }
 
   // ========== Danmaku APIs ==========
@@ -422,6 +426,30 @@ export interface BotSymbolStats {
   draws: number;
   win_rate?: number;
   total_rounds?: number;
+}
+
+export interface AgentProfileResponse {
+  agent_id: string;
+  name: string;
+  avatar_url?: string;
+  total_score: number;
+  global_rank: number;
+  total_wins: number;
+  total_losses: number;
+  total_draws: number;
+  total_rounds: number;
+  win_rate: number;
+  favorite_symbol?: string;
+  pnl?: number;
+  roi?: number;
+  profit_factor?: number | null;
+  drawdown?: number;
+  streak?: number;
+  equity_curve?: number[];
+  strategy?: string;
+  tags?: string[];
+  battle_history?: string[];
+  created_at: string;
 }
 
 export interface StatsResponse {

@@ -3,8 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import api, { LeaderboardEntry, StatsResponse } from '@/lib/api';
 
+export type LeaderboardPeriod = '24h' | '7d' | '30d' | 'all';
+
 interface UseLeaderboardOptions {
   symbol?: string;
+  period?: LeaderboardPeriod;
   limit?: number;
   refreshInterval?: number;
 }
@@ -38,19 +41,25 @@ export interface LeaderboardRow {
   strategy: string;
   tags: string[];
   battle_history: string[];  // Recent results: "win", "loss", "draw"
+  favorite_symbol?: string;  // Agent's preferred trading symbol
 }
 
-function formatProfitFactor(pf: number | null | undefined): string {
+// ============ 共享的类型转换工具 ============
+
+export function formatProfitFactor(pf: number | null | undefined): string {
   if (pf === null) return '∞';
   if (pf === undefined) return '-';
   if (!Number.isFinite(pf)) return '-';
   return pf.toFixed(2);
 }
 
-// Transform backend data to match Leaderboard component expectations (no mock).
-function transformLeaderboardData(entries: LeaderboardEntry[]): LeaderboardRow[] {
-  return entries.map((entry, index) => ({
-    id: index + 1,
+/**
+ * 将 LeaderboardEntry 转换为 LeaderboardRow
+ * 可复用于 useLeaderboard 和其他需要转换的地方
+ */
+export function transformLeaderboardEntry(entry: LeaderboardEntry, index?: number): LeaderboardRow {
+  return {
+    id: index ?? entry.rank,
     bot_id: entry.bot_id,
     rank: entry.rank,
     name: entry.bot_name,
@@ -71,10 +80,47 @@ function transformLeaderboardData(entries: LeaderboardEntry[]): LeaderboardRow[]
     strategy: entry.strategy ?? (entry.favorite_symbol ? `${entry.favorite_symbol} Specialist` : 'Multi-Asset'),
     tags: entry.tags ?? [],
     battle_history: entry.battle_history ?? [],
-  }));
+    favorite_symbol: entry.favorite_symbol,
+  };
 }
 
-export function useLeaderboard({ symbol, limit = 50, refreshInterval = 30000 }: UseLeaderboardOptions = {}) {
+/**
+ * 将 AgentProfileResponse 转换为 LeaderboardRow
+ * 用于从 /agents/{id} API 获取数据后的转换
+ */
+export function transformAgentProfile(agent: import('@/lib/api').AgentProfileResponse): LeaderboardRow {
+  return {
+    id: agent.global_rank,
+    bot_id: agent.agent_id,
+    rank: agent.global_rank,
+    name: agent.name,
+    avatar: agent.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.agent_id}`,
+    score: agent.total_score,
+    pnl: agent.pnl ?? 0,
+    roi: agent.roi ?? 0,
+    drawdown: agent.drawdown ?? 0,
+    profit_factor: formatProfitFactor(agent.profit_factor),
+    win_rate: `${Math.round(agent.win_rate * 100)}%`,
+    win_rate_num: Math.round(agent.win_rate * 100),
+    wins: agent.total_wins,
+    losses: agent.total_losses,
+    draws: agent.total_draws,
+    total_rounds: agent.total_rounds,
+    streak: agent.streak ?? 0,
+    equity_curve: agent.equity_curve ?? [],
+    strategy: agent.strategy ?? (agent.favorite_symbol ? `${agent.favorite_symbol} Specialist` : 'Multi-Asset'),
+    tags: agent.tags ?? [],
+    battle_history: agent.battle_history ?? [],
+    favorite_symbol: agent.favorite_symbol,
+  };
+}
+
+// Transform backend data to match Leaderboard component expectations
+function transformLeaderboardData(entries: LeaderboardEntry[]): LeaderboardRow[] {
+  return entries.map((entry, index) => transformLeaderboardEntry(entry, index + 1));
+}
+
+export function useLeaderboard({ symbol, period = 'all', limit = 50, refreshInterval = 30000 }: UseLeaderboardOptions = {}) {
   const [data, setData] = useState<LeaderboardRow[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalBets: '-',
@@ -88,7 +134,7 @@ export function useLeaderboard({ symbol, limit = 50, refreshInterval = 30000 }: 
   const fetchData = useCallback(async () => {
     try {
       // Fetch leaderboard
-      const leaderboardRes = await api.getLeaderboard(symbol, limit);
+      const leaderboardRes = await api.getLeaderboard(symbol, limit, period);
       
       // Fetch stats
       const statsRes = await api.getStats();
@@ -119,7 +165,7 @@ export function useLeaderboard({ symbol, limit = 50, refreshInterval = 30000 }: 
     } finally {
       setLoading(false);
     }
-  }, [symbol, limit]);
+  }, [symbol, limit, period]);
 
   useEffect(() => {
     fetchData();

@@ -1,13 +1,12 @@
 'use client';
 
-import { Trophy, Users, Activity, Target, Loader2, WifiOff } from "lucide-react";
+import { Loader2, WifiOff } from "lucide-react";
 import Leaderboard from "@/components/home/Leaderboard";
 import RoundHistory from "@/components/home/RoundHistory";
-import { MarketAnalytics } from "@/components/home/MarketAnalytics";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
 
 export default function LeaderboardContainer() {
-  const { data, stats, loading, error } = useLeaderboard();
+  const { data, loading, error } = useLeaderboard();
 
   // Error state
   if (error && !loading) {
@@ -37,29 +36,6 @@ export default function LeaderboardContainer() {
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-28 max-w-[1400px]">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: "Total Bets", value: stats.totalBets, icon: Activity },
-          { label: "Active Agents", value: stats.activeBots, icon: Users },
-          { label: "Total Rounds", value: stats.totalRounds, icon: Target },
-          { label: "Avg Win Rate", value: stats.avgWinRate, icon: Trophy }
-        ].map((stat, i) => (
-          <div key={i} className="fintech-card px-5 py-4 rounded-xl flex items-center justify-between hover:bg-white/5 transition-colors border border-white/5 bg-black/20">
-            <div>
-              <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider block mb-1">{stat.label}</span>
-              <p className="text-2xl font-bold text-white tabular-nums tracking-tight">
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : stat.value}
-              </p>
-            </div>
-            <stat.icon size={20} className="text-zinc-600 opacity-50" />
-          </div>
-        ))}
-      </div>
-
-      {/* Market Analytics Section */}
-      <MarketAnalytics />
-
       {/* Main Content Layout */}
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="lg:w-2/3 min-w-0">

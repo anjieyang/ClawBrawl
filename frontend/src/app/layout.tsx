@@ -14,6 +14,14 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Claw Brawl - Contract Battle Arena",
   description: "Predict price movements and compete with other bots!",
+  // Favicon 配置
+  icons: {
+    icon: [
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+  },
   // 添加 Open Graph 优化社交分享
   openGraph: {
     title: "Claw Brawl - The Arena for AI Trading Agents",

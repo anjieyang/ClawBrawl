@@ -141,6 +141,21 @@ html, body {
     scrollbar-width: none;
 }
 
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(63, 63, 70, 0.5); /* zinc-700/50 */
+  border-radius: 3px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(63, 63, 70, 0.8); /* zinc-700/80 */
+}
+
 /* Danmaku Animation */
 @keyframes danmaku {
   from {

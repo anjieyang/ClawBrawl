@@ -12,6 +12,8 @@ import api, { KeywordItem } from "@/lib/api";
 import { getStreakInfo, STREAK_THRESHOLDS } from "@/lib/streak";
 import EntranceBanner, { EntranceEvent } from "@/components/ui/EntranceBanner";
 import ScoringPanel from "@/components/ui/ScoringPanel";
+import { AgentProfileModal } from "@/components/home/AgentProfileModal";
+import { transformAgentProfile, type LeaderboardRow } from "@/hooks/useLeaderboard";
 
 interface BotBet {
   id: number;
@@ -96,25 +98,47 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
   // 进场播报事件
   const [entranceEvents, setEntranceEvents] = useState<EntranceEvent[]>([]);
   const prevBetIdsRef = useRef<Set<number>>(new Set());
-  const lastRoundIdForEntranceRef = useRef<number | null>(null);
-
-  // 轮次切换时重置进场播报相关状态，避免把“同步到的数据”误判成“新下注进场”
-  useEffect(() => {
-    if (lastRoundIdForEntranceRef.current === null) {
-      lastRoundIdForEntranceRef.current = round.id;
-      return;
-    }
-    if (lastRoundIdForEntranceRef.current !== round.id) {
-      prevBetIdsRef.current = new Set();
-      setEntranceEvents([]);
-      lastRoundIdForEntranceRef.current = round.id;
-    }
-  }, [round.id]);
+  const entranceBaselineRoundIdRef = useRef<number | null>(null);
+  const prevShowEntranceBannerRef = useRef<boolean>(showEntranceBanner);
+  
+  // Agent Profile Modal state
+  const [selectedAgent, setSelectedAgent] = useState<LeaderboardRow | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   
   // 检测新进场的高 streak bot
+  // 只在用户"正在看 Arena"时才播报，离开再回来不补播
   useEffect(() => {
     const allBets = [...bets.long, ...bets.short];
     const currentBetIds = new Set(allBets.map(b => b.id));
+    
+    // 检测 showEntranceBanner 从 false → true（用户回到 Arena）
+    const justBecameVisible = showEntranceBanner && !prevShowEntranceBannerRef.current;
+    prevShowEntranceBannerRef.current = showEntranceBanner;
+
+    // 需要重新设置 baseline 的情况：
+    // 1. 轮次切换
+    // 2. 用户刚回到 Arena（从 Leaderboard 滑回来）
+    const needResetBaseline = entranceBaselineRoundIdRef.current !== round.id || justBecameVisible;
+    
+    if (needResetBaseline) {
+      // 清空事件
+      setEntranceEvents([]);
+      
+      // 只有 bets 非空时才锁定 baseline
+      if (allBets.length > 0) {
+        entranceBaselineRoundIdRef.current = round.id;
+        prevBetIdsRef.current = currentBetIds;
+      }
+      // baseline 设置前不处理任何入场
+      return;
+    }
+    
+    // 如果当前不在 Arena，只更新 prevBetIdsRef，不播报
+    if (!showEntranceBanner) {
+      prevBetIdsRef.current = currentBetIds;
+      return;
+    }
     
     // 找出新增的 bets
     const newBets = allBets.filter(bot => !prevBetIdsRef.current.has(bot.id));
@@ -144,7 +168,7 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
     
     // 更新已处理的 bet IDs
     prevBetIdsRef.current = currentBetIds;
-  }, [bets]);
+  }, [round.id, bets, showEntranceBanner]);
   
   // Calculate prize pool based on actual total bets (each bet contributes to the pool)
   const prizePool = totalBets * 10; // 10 PTS per bet
@@ -252,6 +276,26 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
       fetchKeywords();
     }
   }, [isAnalysisPanelOpen, fetchKeywords]);
+
+  // Handle avatar click - fetch agent profile directly by ID
+  const handleAvatarClick = useCallback(async (botId: string) => {
+    if (!botId || isLoadingProfile) return;
+    
+    setIsLoadingProfile(true);
+    try {
+      const res = await api.getAgentProfile(botId);
+      if (res.success && res.data) {
+        // 使用共享的转换函数
+        const agentRow = transformAgentProfile(res.data);
+        setSelectedAgent(agentRow);
+        setIsProfileModalOpen(true);
+      }
+    } catch (error) {
+      console.error('Failed to fetch agent profile:', error);
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  }, [isLoadingProfile]);
 
   // Track previous round ID to detect new rounds
   const prevRoundIdRef = useRef(round.id);
@@ -469,7 +513,13 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                     >
                       <div className="flex items-center gap-3 mb-2">
                         {/* 头像 + 头像框 */}
-                        <div className="relative">
+                        <div 
+                          className="relative cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAvatarClick(bot.botId || String(bot.id));
+                          }}
+                        >
                           <div 
                             className={`rounded-full ${hasStreakStyle ? streakInfo.style!.animationClass : ''}`}
                             style={hasStreakStyle ? { boxShadow: streakInfo.style!.avatarGlow } : undefined}
@@ -477,7 +527,7 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                             <Avatar 
                               src={bot.avatar} 
                               size="sm" 
-                              className={`opacity-80 group-hover/item:opacity-100 transition-opacity ${
+                              className={`opacity-80 group-hover/item:opacity-100 transition-opacity hover:ring-2 hover:ring-[#FFB800]/50 ${
                                 hasStreakStyle ? streakInfo.style!.avatarRing : ''
                               }`} 
                             />
@@ -716,7 +766,13 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                   >
                     <div className="flex flex-row-reverse items-center gap-3 mb-2">
                       {/* 头像 + 头像框 */}
-                      <div className="relative">
+                      <div 
+                        className="relative cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAvatarClick(bot.botId || String(bot.id));
+                        }}
+                      >
                         <div 
                           className={`rounded-full ${hasStreakStyle ? streakInfo.style!.animationClass : ''}`}
                           style={hasStreakStyle ? { boxShadow: streakInfo.style!.avatarGlow } : undefined}
@@ -724,7 +780,7 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                           <Avatar 
                             src={bot.avatar} 
                             size="sm" 
-                            className={`opacity-80 group-hover/item:opacity-100 transition-opacity ${
+                            className={`opacity-80 group-hover/item:opacity-100 transition-opacity hover:ring-2 hover:ring-[#FFB800]/50 ${
                               hasStreakStyle ? streakInfo.style!.avatarRing : ''
                             }`} 
                           />
@@ -1228,6 +1284,16 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
       
       {/* 进场播报横幅 - 仅在 Arena section 可见时显示 */}
       <EntranceBanner events={entranceEvents} duration={4000} enabled={mounted && showEntranceBanner} />
+      
+      {/* Agent Profile Modal */}
+      <AgentProfileModal 
+        agent={selectedAgent}
+        isOpen={isProfileModalOpen}
+        onClose={() => {
+          setIsProfileModalOpen(false);
+          setSelectedAgent(null);
+        }}
+      />
     </div>
   );
 }

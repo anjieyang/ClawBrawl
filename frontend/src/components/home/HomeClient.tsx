@@ -8,22 +8,18 @@ import { FluidBackground } from "@/components/ui/FluidBackground";
 import ArenaSkeleton from "@/components/skeletons/ArenaSkeleton";
 import LeaderboardSkeleton from "@/components/skeletons/LeaderboardSkeleton";
 
-// 动态导入重型组件 - 减少初始 bundle 大小
-const ArenaContainer = dynamic(
-  () => import('@/components/home/ArenaContainer'),
-  {
-    loading: () => <ArenaSkeleton />,
-    ssr: false, // Arena 依赖客户端 API，无需 SSR
-  }
-);
+// Dynamic imports with preload support
+const ArenaContainerImport = () => import('@/components/home/ArenaContainer');
+const LeaderboardSectionImport = () => import('@/components/home/LeaderboardSection');
 
-const LeaderboardSection = dynamic(
-  () => import('@/components/home/LeaderboardSection'),
-  {
-    loading: () => <LeaderboardSkeleton />,
-    ssr: false,
-  }
-);
+const ArenaContainer = dynamic(ArenaContainerImport, {
+  loading: () => <ArenaSkeleton />,
+  ssr: false, // Arena 依赖客户端 API（WebSocket）
+});
+
+const LeaderboardSection = dynamic(LeaderboardSectionImport, {
+  loading: () => <LeaderboardSkeleton />,
+});
 
 type Section = 'hero' | 'arena' | 'leaderboard';
 
@@ -34,32 +30,26 @@ type Section = 'hero' | 'arena' | 'leaderboard';
 export default function HomeClient() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeSection, setActiveSection] = useState<Section>('hero');
-  const [shouldLoadArena, setShouldLoadArena] = useState(false);
-  const [shouldLoadLeaderboard, setShouldLoadLeaderboard] = useState(false);
+  // Mount all sections immediately - preload JS and start data fetching early
+  const [componentsReady, setComponentsReady] = useState(false);
 
-  // 预加载策略：Hero 渲染后立即开始预加载其他组件
-  // 这样当用户滚动时，内容已经准备好了
+  // Aggressive preload: Start loading JS bundles immediately on mount
   useEffect(() => {
-    // 使用 requestIdleCallback 在浏览器空闲时预加载
-    const preloadComponents = () => {
-      // 第一阶段：立即预加载 Arena（最重要）
-      setShouldLoadArena(true);
-      
-      // 第二阶段：延迟预加载 Leaderboard
-      setTimeout(() => {
-        setShouldLoadLeaderboard(true);
-      }, 1000); // Arena 加载 1 秒后开始加载 Leaderboard
-    };
-
-    if ('requestIdleCallback' in window) {
-      // 在浏览器空闲时预加载，不影响首屏渲染
-      const idleId = requestIdleCallback(preloadComponents, { timeout: 2000 });
-      return () => cancelIdleCallback(idleId);
-    } else {
-      // Fallback: 500ms 后开始预加载
-      const timeoutId = setTimeout(preloadComponents, 500);
-      return () => clearTimeout(timeoutId);
-    }
+    // Preload JS bundles in parallel immediately
+    Promise.all([
+      ArenaContainerImport(),
+      LeaderboardSectionImport(),
+    ]).then(() => {
+      // JS loaded, components can render
+      setComponentsReady(true);
+    });
+    
+    // Also set ready after a timeout in case preload is slow
+    const fallbackTimer = setTimeout(() => {
+      setComponentsReady(true);
+    }, 100);
+    
+    return () => clearTimeout(fallbackTimer);
   }, []);
 
   // Scroll to section function
@@ -161,13 +151,13 @@ export default function HomeClient() {
             <HeroSection onScrollToArena={handleScrollToArena} />
           </section>
 
-          {/* Arena Section - 预加载 */}
+          {/* Arena Section - Render immediately, data fetching starts early */}
           <section 
             id="section-arena"
             className="h-screen w-full snap-start snap-always flex flex-col relative"
           >
             <div className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-6 pt-24 max-w-[1400px] flex flex-col min-h-0">
-              {shouldLoadArena ? (
+              {componentsReady ? (
                 <ArenaContainer
                   symbol="BTCUSDT"
                   onScrollToLeaderboard={() => scrollToSection('leaderboard')}
@@ -178,12 +168,12 @@ export default function HomeClient() {
             </div>
           </section>
 
-          {/* Leaderboard Section - 预加载 */}
+          {/* Leaderboard Section - Render immediately so data fetching starts early */}
           <section 
             id="section-leaderboard"
             className="min-h-screen w-full snap-start snap-always"
           >
-            {shouldLoadLeaderboard ? (
+            {componentsReady ? (
               <LeaderboardSection />
             ) : (
               <LeaderboardSkeleton />

@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { Avatar, Tooltip } from "@nextui-org/react";
 import { Trophy, Target, Flame, Snowflake, Zap, Shield, Swords } from "lucide-react";
+import { AgentTags } from "@/components/ui/AgentTag";
 
 interface AgentProfileCardProps {
   agent: {
@@ -127,22 +128,9 @@ export default function AgentProfileCard({ agent }: AgentProfileCardProps) {
           
           {/* Name & Tags */}
           <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{agent.name}</h2>
-          <div className="flex items-center gap-2 mt-0.5">
-            {agent.tags?.slice(0, 2).map((tag: string) => (
-              <span 
-                key={tag} 
-                className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                  tag === 'Whale' ? 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300' :
-                  tag === 'Degen' ? 'bg-pink-500/10 dark:bg-pink-500/20 text-pink-600 dark:text-pink-300' :
-                  tag === 'Rekt' ? 'bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-300' :
-                  'bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400'
-                }`}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-          <p className="text-[9px] text-slate-500 dark:text-zinc-500 font-mono">{agent.strategy}</p>
+          {agent.tags && agent.tags.length > 0 && (
+            <AgentTags tags={agent.tags} maxTags={2} size="xs" className="mt-1" />
+          )}
         </div>
 
         {/* Score */}

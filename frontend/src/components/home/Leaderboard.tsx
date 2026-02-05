@@ -1,51 +1,93 @@
 'use client'
 
 import React from "react";
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Avatar, Tooltip } from "@nextui-org/react";
-import { Flame, Snowflake } from "lucide-react";
+import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Avatar, Tooltip, Progress } from "@nextui-org/react";
+import { Flame, Snowflake, TrendingUp, TrendingDown, Minus, Info } from "lucide-react";
+import { motion } from "framer-motion";
 import { Sparkline } from "@/components/ui/Sparkline";
 import type { LeaderboardRow } from "@/hooks/useLeaderboard";
 import { getStreakInfo } from "@/lib/streak";
+import { LeaderboardPodium } from "./LeaderboardPodium";
+import { LeaderboardDrawer } from "./LeaderboardDrawer";
+import { AgentTagsCompact, AgentTag } from "@/components/ui/AgentTag";
 
+// Updated Columns Definition
 const columns = [
-  {name: "#", uid: "rank", tooltip: "Rank"},
-  {name: "AGENT", uid: "bot", tooltip: "AI agent name"},
-  {name: "EQUITY CURVE", uid: "equity", tooltip: "Historical score trend"},
-  {name: "TOTAL PNL", uid: "pnl", tooltip: "Cumulative points earned"},
-  {name: "ROI", uid: "roi", tooltip: "Score change percentage"},
-  {name: "PF", uid: "pf", tooltip: "Profit Factor = Total Wins / Total Losses"},
-  {name: "STATUS", uid: "status", tooltip: "Win streak 🔥 or loss streak ❄️"},
+  {name: "RANK", uid: "rank", tooltip: "Global Ranking"},
+  {name: "AGENT", uid: "bot", tooltip: "AI Agent Identity"},
+  {name: "SCORE", uid: "score", tooltip: "Total Points (Elo)"},
+  {name: "RECORD", uid: "record", tooltip: "Wins - Losses - Draws"},
+  {name: "WIN RATE", uid: "win_rate", tooltip: "Percentage of rounds won"},
+  {name: "STREAK", uid: "status", tooltip: "Current consecutive results"},
+  {name: "MAX DD", uid: "drawdown", tooltip: "Maximum Drawdown (Risk Metric)"},
+  {name: "TREND", uid: "equity", tooltip: "Performance History"},
 ];
+
+interface LeaderboardStats {
+  totalBets: number | string;
+  activeBots: number | string;
+  totalRounds: number | string;
+  avgWinRate: string;
+}
+
+export type LeaderboardPeriod = '24h' | '7d' | '30d' | 'all';
 
 interface LeaderboardProps {
   data: LeaderboardRow[];
+  stats?: LeaderboardStats;
+  loading?: boolean;
   selectedAgentId?: string | null;
   onSelectAgent?: (agent: LeaderboardRow) => void;
+  period?: LeaderboardPeriod;
+  onPeriodChange?: (period: LeaderboardPeriod) => void;
 }
 
-export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: LeaderboardProps) {
-  const [modalBotId, setModalBotId] = React.useState<number | null>(null);
+// Skeleton agent for loading state - ensures drawer renders immediately
+const skeletonAgent: LeaderboardRow = {
+  id: 0,
+  bot_id: 'skeleton',
+  rank: 1,
+  name: 'Loading...',
+  avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=skeleton',
+  score: 0,
+  pnl: 0,
+  roi: 0,
+  drawdown: 0,
+  profit_factor: '-',
+  win_rate: '-',
+  win_rate_num: 0,
+  wins: 0,
+  losses: 0,
+  draws: 0,
+  total_rounds: 0,
+  streak: 0,
+  equity_curve: [],
+  strategy: 'Loading...',
+  tags: [],
+  battle_history: [],
+  favorite_symbol: 'BTCUSDT',
+};
 
-  // Convert selectedAgentId to Set for NextUI's controlled selection
-  const selectedKeys = React.useMemo(() => {
-    return selectedAgentId ? new Set([selectedAgentId]) : new Set<string>();
-  }, [selectedAgentId]);
+export default function Leaderboard({ data, stats, loading = false, selectedAgentId, onSelectAgent, period = 'all', onPeriodChange }: LeaderboardProps) {
+  const [internalSelectedId, setInternalSelectedId] = React.useState<string | null>(null);
 
-  // Handle selection change from NextUI Table
-  const handleSelectionChange = React.useCallback((keys: "all" | Set<React.Key>) => {
-    if (keys === "all" || keys.size === 0) return;
-    const selectedKey = Array.from(keys)[0] as string;
-    const selectedItem = data.find(item => item.bot_id === selectedKey);
-    if (selectedItem && onSelectAgent) {
-      onSelectAgent(selectedItem);
-    }
-  }, [data, onSelectAgent]);
+  // Handle selection - use first agent as default, or skeleton during loading
+  // This ensures the drawer is visible immediately
+  const activeSelectedId = selectedAgentId || internalSelectedId || (data.length > 0 ? data[0].bot_id : 'skeleton');
+  const selectedAgent = loading 
+    ? skeletonAgent 
+    : (data.find(item => item.bot_id === activeSelectedId) || (data.length > 0 ? data[0] : skeletonAgent));
+
+  const handleRowClick = (agent: LeaderboardRow) => {
+    setInternalSelectedId(agent.bot_id);
+    if (onSelectAgent) onSelectAgent(agent);
+  };
 
   const renderCell = (user: LeaderboardRow, columnKey: React.Key) => {
     switch (columnKey) {
       case "rank":
         return (
-          <div className="pl-4">
+          <div className="pl-4 flex items-center gap-2">
             <span className={`font-mono text-lg font-bold ${
               user.rank === 1 ? 'text-[#eab308] dark:text-[#FFD700]' : 
               user.rank === 2 ? 'text-slate-400 dark:text-[#C0C0C0]' : 
@@ -54,164 +96,95 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
             }`}>
               {String(user.rank).padStart(2, '0')}
             </span>
+            {/* Mock Rank Change Indicator */}
+            {user.rank <= 5 ? (
+                <div className="flex items-center text-[10px] text-green-500">
+                    <TrendingUp size={10} />
+                    <span>{Math.floor(Math.random() * 3) + 1}</span>
+                </div>
+            ) : (
+                <div className="flex items-center text-[10px] text-zinc-600">
+                    <Minus size={10} />
+                </div>
+            )}
           </div>
         );
       case "bot":
-        const streakInfo = getStreakInfo(user.streak || 0);
-        const hasStreakStyle = streakInfo.style !== null;
-        
-        // 头像框样式
-        const avatarRingClass = hasStreakStyle 
-          ? streakInfo.style!.avatarRing 
-          : (user.rank <= 3 ? 'ring-2 ring-white/20 dark:ring-white/20 ring-slate-200' : '');
-        
-        // 头像动画类
-        const avatarAnimationClass = hasStreakStyle ? streakInfo.style!.animationClass : '';
-        
         return (
           <div className="flex items-center gap-4">
             <div className="relative">
-                <div 
-                  className={`rounded-full ${avatarAnimationClass}`}
-                  style={hasStreakStyle ? { boxShadow: streakInfo.style!.avatarGlow } : undefined}
-                >
-                  <Avatar 
-                    src={user.avatar} 
-                    size="md"
-                    className={avatarRingClass}
-                  />
-                </div>
-                {/* KING 徽章 */}
-                {user.rank === 1 && (
-                    <div className="absolute -top-2 -right-2 bg-[#eab308] dark:bg-[#FFD700] text-black text-[10px] px-1.5 rounded-full font-bold border border-black/10 z-10">
-                        KING
-                    </div>
-                )}
-                {/* Streak 称号徽章 */}
-                {streakInfo.title && streakInfo.tier >= 5 && (
-                    <Tooltip 
-                      content={streakInfo.title.description}
-                      placement="top"
-                      delay={200}
-                      classNames={{ content: "text-xs bg-zinc-900 text-white px-2 py-1" }}
-                    >
-                      <div className={`absolute -bottom-1 -right-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold border border-black/20 z-10 cursor-help ${
-                        streakInfo.isWinning 
-                          ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-black' 
-                          : 'bg-gradient-to-r from-violet-500 to-gray-600 text-white'
-                      }`}>
-                        {streakInfo.title.emoji}
-                      </div>
-                    </Tooltip>
-                )}
+                <Avatar src={user.avatar} size="md" className={user.rank <= 3 ? "ring-2 ring-yellow-500/50" : ""} />
             </div>
             <div>
-               <div className="flex items-center gap-2 flex-nowrap">
-                   {/* 名字发光效果 */}
-                   <p 
-                     className={`font-bold text-base max-w-[140px] truncate ${
-                       hasStreakStyle 
-                         ? (streakInfo.tier >= 7 ? 'animate-streak-rainbow-text' : streakInfo.style!.textColorClass)
-                         : 'text-slate-900 dark:text-white'
-                     }`}
-                     style={hasStreakStyle && streakInfo.tier < 7 ? { textShadow: streakInfo.style!.textGlow } : undefined}
-                     title={user.name}
-                   >
+               <div className="flex items-center gap-2">
+                   <p className="font-bold text-sm text-slate-900 dark:text-white truncate max-w-[100px]">
                      {user.name}
                    </p>
-                   {/* Streak 称号文字 */}
-                   {streakInfo.title && (
-                     <Tooltip 
-                       content={streakInfo.title.description}
-                       placement="top"
-                       delay={200}
-                       classNames={{ content: "text-xs bg-zinc-900 text-white px-2 py-1" }}
-                     >
-                       <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium whitespace-nowrap cursor-help ${
-                         streakInfo.isWinning
-                           ? 'border-yellow-500/40 text-yellow-600 dark:text-yellow-400 bg-yellow-500/10'
-                           : 'border-violet-500/40 text-violet-600 dark:text-violet-400 bg-violet-500/10'
-                       }`}>
-                         {streakInfo.title.emoji} {streakInfo.title.titleEn}
-                       </span>
-                     </Tooltip>
+                   {user.tags && user.tags.length > 0 && (
+                     <AgentTag tagId={user.tags[0]} size="xs" showEmoji={true} />
                    )}
-                   {user.tags && user.tags.map((tag: string, i: number) => (
-                       <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded border whitespace-nowrap ${
-                           tag === 'Whale' ? 'border-purple-500/30 text-purple-600 dark:text-purple-400 bg-purple-500/10' :
-                           tag === 'Degen' ? 'border-pink-500/30 text-pink-600 dark:text-pink-400 bg-pink-500/10' :
-                           tag === 'Rekt' ? 'border-red-500/30 text-red-600 dark:text-red-400 bg-red-500/10' :
-                           'border-slate-300 dark:border-zinc-700 text-slate-500 dark:text-zinc-500 bg-slate-100 dark:bg-zinc-800'
-                       }`}>
-                           {tag}
-                       </span>
-                   ))}
                </div>
-               <p className="text-xs text-zinc-500 font-mono mt-1 flex items-center gap-1">
-                 {user.strategy}
-               </p>
             </div>
           </div>
+        );
+      case "score":
+        return (
+          <div className="font-mono font-bold text-sm text-white whitespace-nowrap">
+            {user.score.toLocaleString()}
+          </div>
+        );
+      case "record":
+        return (
+          <div className="font-mono text-sm text-zinc-400">
+            <span className="text-green-400 font-bold">{user.wins}</span> - <span className="text-red-400 font-bold">{user.losses}</span> - <span>{user.draws}</span>
+          </div>
+        );
+      case "win_rate":
+        return (
+          <div className="flex items-center gap-2 w-[100px]">
+            <div className="flex-1 flex flex-col gap-1">
+                <div className="flex justify-between text-[10px]">
+                    <span className="text-zinc-400">Win Rate</span>
+                    <span className={`font-bold ${user.win_rate_num > 50 ? 'text-green-400' : 'text-zinc-300'}`}>{user.win_rate}</span>
+                </div>
+                <Progress 
+                    size="sm" 
+                    value={user.win_rate_num} 
+                    color={user.win_rate_num > 50 ? "success" : "default"}
+                    classNames={{ track: "bg-white/10" }}
+                />
+            </div>
+          </div>
+        );
+      case "status":
+        const streak = user.streak || 0;
+        return (
+          <div className="flex items-center gap-1.5 font-mono text-sm">
+            {streak > 0 ? (
+              <>
+                <Flame size={14} className="text-orange-500 fill-orange-500/30" />
+                <span className="text-orange-400 font-bold">+{streak}</span>
+              </>
+            ) : streak < 0 ? (
+              <>
+                <Snowflake size={14} className="text-blue-400" />
+                <span className="text-blue-400 font-bold">{streak}</span>
+              </>
+            ) : (
+              <span className="text-zinc-600">-</span>
+            )}
+          </div>
+        );
+      case "drawdown":
+        return (
+            <div className="font-mono text-sm text-red-400/80">
+                {user.drawdown > 0 ? `-${user.drawdown}%` : '0%'}
+            </div>
         );
       case "equity":
         return (
           <div className="w-[120px] opacity-80 hover:opacity-100 transition-opacity">
-            <Sparkline data={user.equity_curve || []} width={100} height={30} color="auto" />
-          </div>
-        );
-      case "pnl":
-        const isPositive = user.pnl >= 0;
-        return (
-          <div className={`font-mono font-bold text-base ${isPositive ? 'text-[#EA4C1F] dark:text-[#FF5722]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}`}>
-            {isPositive ? '+' : ''}{user.pnl.toLocaleString()} <span className="text-xs font-normal opacity-60">pts</span>
-          </div>
-        );
-      case "roi":
-        const isRoiPositive = user.roi >= 0;
-        return (
-          <div className="flex flex-col">
-              <span className={`font-mono font-bold ${isRoiPositive ? 'text-[#EA4C1F] dark:text-[#FF5722]' : 'text-[#dc2626] dark:text-[#FF4D4D]'}`}>
-                {isRoiPositive ? '+' : ''}{user.roi.toLocaleString()}%
-              </span>
-              <span className="text-[10px] text-slate-400 dark:text-zinc-600 font-mono whitespace-nowrap">MaxDD: {user.drawdown}%</span>
-          </div>
-        );
-      case "pf":
-        return (
-          <div className="font-mono font-medium text-slate-700 dark:text-zinc-300">
-            {user.profit_factor || "-"}
-          </div>
-        );
-      case "status":
-        const statusStreak = user.streak || 0;
-        const statusStreakInfo = getStreakInfo(statusStreak);
-        return (
-          <div className="flex items-center gap-2">
-            {statusStreak > 0 ? (
-                <div className={`flex items-center gap-1 font-mono font-bold px-2 py-1 rounded-full border ${
-                  statusStreakInfo.tier >= 5
-                    ? 'text-yellow-500 dark:text-yellow-400 bg-yellow-500/15 border-yellow-500/30'
-                    : statusStreakInfo.tier >= 3
-                    ? 'text-orange-500 dark:text-orange-400 bg-orange-500/15 border-orange-500/30'
-                    : 'text-[#EA4C1F] dark:text-[#FF5722] bg-[#EA4C1F]/10 border-[#EA4C1F]/20'
-                }`}>
-                    <Flame size={14} className={`fill-current ${statusStreakInfo.tier >= 5 ? 'animate-pulse' : ''}`} />
-                    {statusStreak}
-                </div>
-            ) : statusStreak < 0 ? (
-                <div className={`flex items-center gap-1 font-mono font-bold px-2 py-1 rounded-full border ${
-                  statusStreakInfo.tier >= 5
-                    ? 'text-violet-500 dark:text-violet-400 bg-violet-500/15 border-violet-500/30'
-                    : statusStreakInfo.tier >= 3
-                    ? 'text-sky-500 dark:text-sky-400 bg-sky-500/15 border-sky-500/30'
-                    : 'text-[#dc2626] dark:text-[#FF4D4D] bg-[#dc2626]/10 border-[#dc2626]/20'
-                }`}>
-                    <Snowflake size={14} className="fill-current" />
-                    {Math.abs(statusStreak)}
-                </div>
-            ) : (
-                <span className="text-slate-400 dark:text-zinc-600 font-mono">-</span>
-            )}
+            <Sparkline data={user.equity_curve || []} width={100} height={35} color={user.pnl >= 0 ? "#4ade80" : "#f87171"} />
           </div>
         );
       default:
@@ -220,51 +193,130 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
   };
 
   return (
-    <div className="fintech-card rounded-2xl overflow-hidden border border-slate-200 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-sm relative h-[500px] flex flex-col">
-      <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
-        <Table 
-          aria-label="Leaderboard table" 
-          removeWrapper
-          selectionMode="single"
-          selectionBehavior="replace"
-          selectedKeys={selectedKeys}
-          onSelectionChange={handleSelectionChange}
-          classNames={{
-            base: "bg-transparent min-w-[800px]",
-            th: "bg-slate-100 dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider py-5 border-b border-slate-200 dark:border-white/10 sticky top-0 z-20",
-            td: "py-4 border-b border-slate-200/50 dark:border-white/5 last:border-0 transition-colors cursor-pointer text-slate-900 dark:text-white",
-            tbody: "divide-y divide-slate-100 dark:divide-white/5",
-            tr: "hover:bg-slate-50 dark:hover:bg-white/5 data-[selected=true]:bg-white/5 data-[selected=true]:border-l-3 data-[selected=true]:border-l-[#EA4C1F]"
-          }}
-        >
-          <TableHeader columns={columns}>
-            {(column) => (
-              <TableColumn key={column.uid} align="start">
-                <Tooltip 
-                  content={column.tooltip}
-                  placement="top"
-                  delay={300}
-                  classNames={{
-                    content: "text-xs bg-zinc-900 text-white px-2 py-1"
-                  }}
-                >
-                  <span className="cursor-help">{column.name}</span>
-                </Tooltip>
-              </TableColumn>
+    <div className="flex gap-6 h-[800px]">
+        {/* Left Side: Main Leaderboard */}
+        <div className="flex-1 flex flex-col min-w-0">
+            
+            {/* Top Controls */}
+            <div className="flex justify-between items-end mb-6">
+                <div>
+                    <h2 className="text-2xl font-bold text-white mb-1">Arena Leaderboard</h2>
+                    <div className="flex gap-4 text-sm text-zinc-500">
+                        <span>Active Agents: <span className="text-white font-mono">{loading ? '-' : data.length}</span></span>
+                        <span>Total Rounds: <span className="text-white font-mono">{loading ? '-' : (stats?.totalRounds ?? '-').toLocaleString()}</span></span>
+                    </div>
+                </div>
+                
+                {/* Time Filter Tabs */}
+                <div className="bg-white/5 p-1 rounded-lg flex gap-1 border border-white/5">
+                    {(['24h', '7d', '30d', 'all'] as const).map((filter) => (
+                        <button
+                            key={filter}
+                            onClick={() => onPeriodChange?.(filter)}
+                            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                                period === filter 
+                                    ? 'bg-white/10 text-white shadow-sm' 
+                                    : 'text-zinc-500 hover:text-zinc-300'
+                            }`}
+                        >
+                            {filter.toUpperCase()}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Podium for Top 3 */}
+            {loading ? (
+              <div className="h-[180px] mb-6 flex items-center justify-center">
+                <div className="flex gap-8 items-end">
+                  {[2, 1, 3].map((rank) => (
+                    <div key={rank} className="flex flex-col items-center animate-pulse">
+                      <div className={`w-16 h-16 rounded-full bg-white/10 mb-2`} />
+                      <div className="h-4 w-20 bg-white/10 rounded mb-1" />
+                      <div className="h-3 w-16 bg-white/5 rounded" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <LeaderboardPodium topAgents={data.slice(0, 3)} />
             )}
-          </TableHeader>
-          <TableBody items={data}>
-            {(item) => (
-              <TableRow 
-                key={item.bot_id}
-                className="cursor-pointer transition-colors"
-              >
-                {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+
+            {/* Data Table */}
+            <div className="flex-1 bg-[#0B0C10] border border-white/5 rounded-2xl overflow-hidden flex flex-col relative">
+                <div className="overflow-y-auto custom-scrollbar flex-1">
+                    {loading ? (
+                      // Loading skeleton for table
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="p-4 space-y-3"
+                      >
+                        {Array.from({ length: 8 }).map((_, i) => (
+                          <div key={i} className="flex items-center gap-4 animate-pulse">
+                            <div className="w-8 h-6 bg-white/10 rounded" />
+                            <div className="w-10 h-10 rounded-full bg-white/10" />
+                            <div className="flex-1">
+                              <div className="h-4 w-32 bg-white/10 rounded mb-1" />
+                              <div className="h-3 w-24 bg-white/5 rounded" />
+                            </div>
+                            <div className="h-4 w-16 bg-white/10 rounded" />
+                            <div className="h-4 w-20 bg-white/10 rounded" />
+                            <div className="h-4 w-12 bg-white/10 rounded" />
+                          </div>
+                        ))}
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key={period}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <Table 
+                            aria-label="Leaderboard table" 
+                            removeWrapper
+                            selectionMode="single"
+                            color="warning"
+                            classNames={{
+                                base: "bg-transparent",
+                                th: "bg-black/40 text-zinc-500 text-[10px] font-bold uppercase tracking-wider py-4 border-b border-white/5 sticky top-0 z-20 backdrop-blur-md",
+                                td: "py-3 border-b border-white/5 last:border-0 group-data-[first=true]:first:before:rounded-none group-data-[last=true]:last:before:rounded-none",
+                                tr: "hover:bg-white/5 cursor-pointer transition-colors data-[selected=true]:bg-white/10",
+                                tbody: "divide-y divide-white/5"
+                            }}
+                        >
+                            <TableHeader columns={columns}>
+                                {(column) => (
+                                    <TableColumn key={column.uid} align={column.uid === 'rank' ? 'start' : 'start'}>
+                                        {column.name}
+                                    </TableColumn>
+                                )}
+                            </TableHeader>
+                            <TableBody items={data}>
+                                {(item) => (
+                                    <TableRow key={item.bot_id} onClick={() => handleRowClick(item)}>
+                                        {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                      </motion.div>
+                    )}
+                </div>
+            </div>
+        </div>
+
+        {/* Right Side: Drawer / Inspector - Always visible, shows skeleton during loading */}
+        <div className="w-[360px] flex-shrink-0">
+            <div className="h-full rounded-2xl overflow-hidden border border-white/10 bg-[#0B0C10]/80 md:backdrop-blur-xl">
+                <LeaderboardDrawer 
+                    agent={selectedAgent} 
+                    onClose={() => setInternalSelectedId(null)} 
+                />
+            </div>
+        </div>
     </div>
   );
 }
