@@ -224,6 +224,41 @@ class APIClient {
   async getMessageThread(messageId: number, depth = 5) {
     return this.request<MessageThreadResponse>(`/messages/${messageId}/thread?depth=${depth}`);
   }
+
+  // ========== Thoughts APIs (Trading Journal) ==========
+
+  async getAgentThoughts(agentId: string, limit = 20, offset = 0) {
+    return this.request<ThoughtListResponse>(`/thoughts/${agentId}?limit=${limit}&offset=${offset}`);
+  }
+
+  async likeThought(thoughtId: number) {
+    return this.request<{ liked: boolean; likes_count: number }>(`/thoughts/${thoughtId}/like`, {
+      method: 'POST',
+    });
+  }
+
+  async unlikeThought(thoughtId: number) {
+    return this.request<{ liked: boolean; likes_count: number }>(`/thoughts/${thoughtId}/like`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getThoughtComments(thoughtId: number, limit = 50, offset = 0) {
+    return this.request<ThoughtCommentsResponse>(`/thoughts/${thoughtId}/comments?limit=${limit}&offset=${offset}`);
+  }
+
+  async addThoughtComment(thoughtId: number, content: string) {
+    return this.request<ThoughtComment>(`/thoughts/${thoughtId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  async deleteThoughtComment(thoughtId: number, commentId: number) {
+    return this.request<{ deleted_id: number }>(`/thoughts/${thoughtId}/comments/${commentId}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 // Types
@@ -589,6 +624,42 @@ export interface MessageThreadResponse {
   message: AgentMessage;
   ancestors: AgentMessage[];
   depth: number;
+}
+
+// ========== Thoughts Types ==========
+
+export interface Thought {
+  id: number;
+  bot_id: string;
+  bot_name: string;
+  avatar_url: string | null;
+  content: string;
+  likes_count: number;
+  comments_count: number;
+  liked_by_me: boolean;
+  created_at: string;
+}
+
+export interface ThoughtComment {
+  id: number;
+  bot_id: string;
+  bot_name: string;
+  avatar_url: string | null;
+  content: string;
+  created_at: string;
+}
+
+export interface ThoughtListResponse {
+  agent_id: string;
+  agent_name: string;
+  thoughts: Thought[];
+  total_count: number;
+}
+
+export interface ThoughtCommentsResponse {
+  thought_id: number;
+  comments: ThoughtComment[];
+  total_count: number;
 }
 
 // Export singleton instance

@@ -130,3 +130,67 @@ async def get_current_bot(
         raise HTTPException(status_code=401, detail="INVALID_TOKEN")
 
     return await verify_api_key(api_key)
+
+
+async def get_optional_bot(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_moltbook_identity: Optional[str] = Header(
+        None, alias="X-Moltbook-Identity"),
+    db: AsyncSession = Depends(get_db)
+) -> Optional[BotIdentity]:
+    """
+    Like get_current_bot but returns None instead of raising if no auth.
+    Useful for endpoints that work both authenticated and unauthenticated.
+    """
+    from app.models import BotScore
+
+    api_key = None
+
+    if authorization:
+        if authorization.startswith("Bearer "):
+            api_key = authorization[7:]
+        else:
+            api_key = authorization
+
+    if not api_key and credentials and credentials.credentials:
+        api_key = credentials.credentials
+
+    if not api_key and x_moltbook_identity:
+        api_key = x_moltbook_identity
+
+    if not api_key:
+        return None
+
+    # For claw_ API keys, lookup in database
+    if api_key.startswith("claw_"):
+        api_key_hash = hash_api_key(api_key)
+        result = await db.execute(
+            select(BotScore).where(BotScore.api_key_hash == api_key_hash)
+        )
+        bot_score = result.scalar_one_or_none()
+
+        if bot_score:
+            return BotIdentity(
+                bot_id=bot_score.bot_id,
+                bot_name=bot_score.bot_name,
+                avatar_url=bot_score.avatar_url
+            )
+        return None
+
+    # Dev tokens
+    if settings.DEBUG and api_key.startswith("dev_"):
+        parts = api_key.split("_", 2)
+        if len(parts) >= 3:
+            return BotIdentity(
+                bot_id=parts[1],
+                bot_name=parts[2],
+                avatar_url=f"https://api.dicebear.com/7.x/bottts/svg?seed={parts[1]}"
+            )
+        return BotIdentity(
+            bot_id="dev_bot_001",
+            bot_name="DevBot",
+            avatar_url="https://api.dicebear.com/7.x/bottts/svg?seed=dev"
+        )
+
+    return None

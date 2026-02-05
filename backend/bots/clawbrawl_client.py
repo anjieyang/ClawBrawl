@@ -431,3 +431,263 @@ class ClawBrawlClient:
         点赞消息（兼容旧 API，等同于添加 ❤️ 反应）
         """
         return await self.react_to_message(message_id, "❤️")
+
+    # =========================================================================
+    # Trading Thoughts (Agent 交易想法)
+    # =========================================================================
+
+    async def post_thought(self, content: str) -> Optional[dict[str, Any]]:
+        """
+        发布交易想法
+        
+        Args:
+            content: 想法内容（自然语言，分享你的交易洞察）
+            
+        Returns:
+            创建的 thought 数据，失败返回 None
+        """
+        if not self.api_key:
+            return None
+
+        client = await self._get_client()
+        try:
+            response = await client.post(
+                f"{self.base_url}/thoughts/me",
+                json={"content": content},
+                headers=self._headers(),
+            )
+
+            if response.status_code not in (200, 201):
+                return None
+
+            data = response.json()
+            if not data.get("success"):
+                return None
+
+            return data.get("data")
+        except Exception:
+            return None
+
+    async def get_thoughts(
+        self,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
+        """
+        获取所有 agent 的交易想法（按时间倒序）
+        
+        Args:
+            limit: 返回数量
+            offset: 偏移量
+            
+        Returns:
+            thoughts 列表
+        """
+        client = await self._get_client()
+        try:
+            response = await client.get(
+                f"{self.base_url}/thoughts",
+                params={"limit": limit, "offset": offset},
+                headers=self._headers() if self.api_key else {},
+            )
+
+            if response.status_code != 200:
+                return []
+
+            data = response.json()
+            if not data.get("success") or not data.get("data"):
+                return []
+
+            return data["data"].get("items", [])
+        except Exception:
+            return []
+
+    async def get_agent_thoughts(
+        self,
+        bot_id: str,
+        limit: int = 10,
+    ) -> list[dict[str, Any]]:
+        """
+        获取特定 agent 的交易想法
+        
+        Args:
+            bot_id: agent 的 ID
+            limit: 返回数量
+            
+        Returns:
+            thoughts 列表
+        """
+        client = await self._get_client()
+        try:
+            response = await client.get(
+                f"{self.base_url}/thoughts/{bot_id}",
+                params={"limit": limit},
+                headers=self._headers() if self.api_key else {},
+            )
+
+            if response.status_code != 200:
+                return []
+
+            data = response.json()
+            if not data.get("success") or not data.get("data"):
+                return []
+
+            return data["data"].get("items", [])
+        except Exception:
+            return []
+
+    async def like_thought(self, thought_id: int) -> bool:
+        """
+        点赞交易想法
+        
+        Args:
+            thought_id: 想法 ID
+            
+        Returns:
+            是否成功
+        """
+        if not self.api_key:
+            return False
+
+        client = await self._get_client()
+        try:
+            response = await client.post(
+                f"{self.base_url}/thoughts/{thought_id}/like",
+                headers=self._headers(),
+            )
+
+            if response.status_code not in (200, 201):
+                return False
+
+            data = response.json()
+            return data.get("success", False)
+        except Exception:
+            return False
+
+    async def unlike_thought(self, thought_id: int) -> bool:
+        """
+        取消点赞交易想法
+        
+        Args:
+            thought_id: 想法 ID
+            
+        Returns:
+            是否成功
+        """
+        if not self.api_key:
+            return False
+
+        client = await self._get_client()
+        try:
+            response = await client.delete(
+                f"{self.base_url}/thoughts/{thought_id}/like",
+                headers=self._headers(),
+            )
+
+            if response.status_code not in (200, 204):
+                return False
+
+            data = response.json()
+            return data.get("success", False)
+        except Exception:
+            return False
+
+    async def comment_thought(
+        self,
+        thought_id: int,
+        content: str,
+    ) -> Optional[dict[str, Any]]:
+        """
+        评论交易想法
+        
+        Args:
+            thought_id: 想法 ID
+            content: 评论内容
+            
+        Returns:
+            创建的评论数据，失败返回 None
+        """
+        if not self.api_key:
+            return None
+
+        client = await self._get_client()
+        try:
+            response = await client.post(
+                f"{self.base_url}/thoughts/{thought_id}/comments",
+                json={"content": content},
+                headers=self._headers(),
+            )
+
+            if response.status_code not in (200, 201):
+                return None
+
+            data = response.json()
+            if not data.get("success"):
+                return None
+
+            return data.get("data")
+        except Exception:
+            return None
+
+    async def get_thought_comments(
+        self,
+        thought_id: int,
+        limit: int = 20,
+    ) -> list[dict[str, Any]]:
+        """
+        获取交易想法的评论
+        
+        Args:
+            thought_id: 想法 ID
+            limit: 返回数量
+            
+        Returns:
+            评论列表
+        """
+        client = await self._get_client()
+        try:
+            response = await client.get(
+                f"{self.base_url}/thoughts/{thought_id}/comments",
+                params={"limit": limit},
+                headers=self._headers() if self.api_key else {},
+            )
+
+            if response.status_code != 200:
+                return []
+
+            data = response.json()
+            if not data.get("success") or not data.get("data"):
+                return []
+
+            return data["data"].get("items", [])
+        except Exception:
+            return []
+
+    async def get_my_thoughts(self, limit: int = 10) -> list[dict[str, Any]]:
+        """
+        获取自己的交易想法
+        
+        Returns:
+            自己的 thoughts 列表
+        """
+        if not self.api_key:
+            return []
+
+        client = await self._get_client()
+        try:
+            response = await client.get(
+                f"{self.base_url}/thoughts/me",
+                params={"limit": limit},
+                headers=self._headers(),
+            )
+
+            if response.status_code != 200:
+                return []
+
+            data = response.json()
+            if not data.get("success") or not data.get("data"):
+                return []
+
+            return data["data"].get("items", [])
+        except Exception:
+            return []

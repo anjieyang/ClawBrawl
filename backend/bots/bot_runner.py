@@ -23,6 +23,7 @@ from .news_client import get_news_context
 from .register_all import load_credentials
 from .danmaku_service import DanmakuService
 from .moltbook_poster import get_moltbook_poster, MoltbookPoster
+from .thoughts_generator import get_thoughts_generator, RecentThought
 
 # Setup logging
 logging.basicConfig(
@@ -55,6 +56,9 @@ class BotRunner:
         self._moltbook_poster: Optional[MoltbookPoster] = None
         self._last_moltbook_activity: Optional[datetime] = None
         self._moltbook_interval_range = (1800, 3600)  # 30-60 分钟（遵守 rate limit）
+        # Trading Thoughts 活动
+        self._last_thoughts_activity: Optional[datetime] = None
+        self._thoughts_interval_range = (120, 300)  # 2-5 分钟发一次 thought 活动
 
     async def initialize(self) -> bool:
         """Load credentials and validate setup"""
@@ -656,9 +660,20 @@ class BotRunner:
             replace_existing=True,
         )
 
+        # 每分钟检查 Thoughts 活动（实际发送由 2-5 分钟间隔控制）
+        self.scheduler.add_job(
+            self.run_thoughts_activity,
+            "interval",
+            seconds=60,
+            id="thoughts_activity",
+            name="Trading Thoughts Activity (Post, Like, Comment)",
+            replace_existing=True,
+        )
+
         self.scheduler.start()
         logger.info("🚀 Scheduler started - checking every minute for new rounds")
         logger.info("📝 Idle activity: chat every 45-90s, posts every 60-120s (randomized)")
+        logger.info("💭 Thoughts activity: every 2-5 minutes")
         logger.info("🦞 Moltbook activity: every 30-60 minutes")
 
     async def start_danmaku_service(self) -> None:
@@ -727,6 +742,153 @@ class BotRunner:
                 await self._moltbook_poster.engage_with_feed()
         except Exception as e:
             logger.warning(f"Moltbook activity failed: {e}")
+
+    async def run_thoughts_activity(self) -> None:
+        """Trading Thoughts 活动：发布想法、浏览、点赞、评论"""
+        now = datetime.now(timezone.utc)
+
+        # 检查是否到了活动时间
+        should_act = True
+        if self._last_thoughts_activity:
+            elapsed = (now - self._last_thoughts_activity).total_seconds()
+            next_interval = random.randint(*self._thoughts_interval_range)
+            if elapsed < next_interval:
+                should_act = False
+
+        if not should_act:
+            return
+
+        self._last_thoughts_activity = now
+
+        available_bots = [p for p in PERSONALITIES if p.name in self.credentials]
+        if not available_bots:
+            return
+
+        # 随机选择活动类型
+        activity = random.choices(
+            ["post_thought", "browse_and_engage", "browse_and_engage"],
+            weights=[0.3, 0.35, 0.35],  # 偏向浏览互动
+            k=1,
+        )[0]
+
+        try:
+            if activity == "post_thought":
+                await self._post_thought()
+            else:
+                await self._browse_and_engage_thoughts()
+        except Exception as e:
+            logger.warning(f"Thoughts activity failed: {e}")
+
+    async def _post_thought(self) -> None:
+        """发布交易想法"""
+        available_bots = [p for p in PERSONALITIES if p.name in self.credentials]
+        if not available_bots:
+            return
+
+        # 随机选择 1 个 bot 发想法
+        personality = random.choice(available_bots)
+        api_key = self.credentials[personality.name]
+
+        thoughts_generator = get_thoughts_generator()
+        client = ClawBrawlClient(api_key=api_key)
+
+        try:
+            # 获取最近的 thoughts 作为上下文
+            recent_raw = await client.get_thoughts(limit=10)
+            recent_thoughts = [
+                RecentThought(
+                    id=t.get("id", 0),
+                    bot_name=t.get("bot_name", "Unknown"),
+                    content=t.get("content", ""),
+                    likes_count=t.get("likes_count", 0),
+                    comments_count=t.get("comments_count", 0),
+                )
+                for t in recent_raw
+            ]
+
+            # 获取自己的表现数据
+            performance = await client.get_my_score()
+
+            # 生成 thought
+            thought = await thoughts_generator.generate_thought(
+                personality=personality,
+                recent_thoughts=recent_thoughts,
+                recent_performance=performance,
+            )
+
+            if thought:
+                result = await client.post_thought(thought.content)
+                if result:
+                    logger.info(f"💭 {personality.name} posted thought: {thought.content[:50]}...")
+        finally:
+            await client.close()
+
+    async def _browse_and_engage_thoughts(self) -> None:
+        """浏览 thoughts 并互动（点赞、评论）"""
+        available_bots = [p for p in PERSONALITIES if p.name in self.credentials]
+        if not available_bots:
+            return
+
+        # 随机选择 1-2 个 bot 参与互动
+        num_engagers = random.randint(1, 2)
+        engagers = random.sample(available_bots, min(num_engagers, len(available_bots)))
+
+        thoughts_generator = get_thoughts_generator()
+
+        # 获取最近的 thoughts
+        client = ClawBrawlClient()
+        try:
+            recent_raw = await client.get_thoughts(limit=20)
+            recent_thoughts = [
+                RecentThought(
+                    id=t.get("id", 0),
+                    bot_name=t.get("bot_name", "Unknown"),
+                    content=t.get("content", ""),
+                    likes_count=t.get("likes_count", 0),
+                    comments_count=t.get("comments_count", 0),
+                )
+                for t in recent_raw
+                if t.get("id")
+            ]
+        finally:
+            await client.close()
+
+        if not recent_thoughts:
+            return
+
+        for i, personality in enumerate(engagers):
+            # bot 之间随机延迟 3-8 秒
+            if i > 0:
+                await asyncio.sleep(random.uniform(3, 8))
+
+            api_key = self.credentials[personality.name]
+            engager_client = ClawBrawlClient(api_key=api_key)
+
+            try:
+                # 随机选择一个 thought 来互动
+                thought = random.choice(recent_thoughts)
+
+                # 判断是否点赞
+                if thoughts_generator.should_like(personality, thought):
+                    liked = await engager_client.like_thought(thought.id)
+                    if liked:
+                        logger.info(f"❤️ {personality.name} liked {thought.bot_name}'s thought")
+
+                # 判断是否评论
+                if thoughts_generator.should_comment(personality, thought):
+                    comment = await thoughts_generator.generate_comment(personality, thought)
+                    if comment:
+                        result = await engager_client.comment_thought(thought.id, comment.content)
+                        if result:
+                            logger.info(
+                                f"💬 {personality.name} commented on {thought.bot_name}'s thought: "
+                                f"{comment.content[:40]}..."
+                            )
+
+            except Exception as e:
+                logger.warning(f"Thoughts engagement failed for {personality.name}: {e}")
+            finally:
+                await engager_client.close()
 
     async def run_once(self) -> None:
         """Run one betting round immediately"""

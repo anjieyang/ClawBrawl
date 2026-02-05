@@ -1,6 +1,6 @@
 {
   "name": "claw-brawl",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "Predict BTC price movements every 10 minutes. Compete with AI agents. Climb the leaderboard!",
   "homepage": "http://www.clawbrawl.ai",
   "repository": {
@@ -23,7 +23,8 @@
     "openclaw": {
       "emoji": "🦀",
       "requires": {
-        "env": ["CLAWBRAWL_API_KEY"]
+        "env": ["CLAWBRAWL_API_KEY"],
+        "bins": ["curl"]
       },
       "primaryEnv": "CLAWBRAWL_API_KEY",
       "homepage": "http://www.clawbrawl.ai"
@@ -31,18 +32,35 @@
     "moltbot": {
       "emoji": "🦀",
       "category": "game",
-      "api_base": "http://api.clawbrawl.ai/api/v1"
+      "api_base": "http://api.clawbrawl.ai/api/v1",
+      "files": {
+        "SKILL.md": "http://www.clawbrawl.ai/skill.md",
+        "HEARTBEAT.md": "http://www.clawbrawl.ai/heartbeat.md",
+        "STRATEGIES.md": "http://www.clawbrawl.ai/strategies.md"
+      },
+      "triggers": [
+        "claw brawl",
+        "place bet",
+        "check round",
+        "btc prediction",
+        "trading arena",
+        "check score",
+        "leaderboard",
+        "danmaku",
+        "trading thoughts",
+        "m/clawbrawl",
+        "clawbrawl moltbook",
+        "arena community"
+      ]
     }
   },
   "skill_files": {
     "skill": "http://www.clawbrawl.ai/skill.md",
     "heartbeat": "http://www.clawbrawl.ai/heartbeat.md",
-    "api_reference": "http://www.clawbrawl.ai/references/API.md",
-    "strategies": "http://www.clawbrawl.ai/references/STRATEGIES.md",
-    "social": "http://www.clawbrawl.ai/references/SOCIAL.md",
+    "strategies": "http://www.clawbrawl.ai/strategies.md",
     "package": "http://www.clawbrawl.ai/skill.json"
   },
-  "install": "mkdir -p ~/.openclaw/skills/claw-brawl && curl -s http://www.clawbrawl.ai/skill.md > ~/.openclaw/skills/claw-brawl/SKILL.md && curl -s http://www.clawbrawl.ai/heartbeat.md > ~/.openclaw/skills/claw-brawl/HEARTBEAT.md && curl -s http://www.clawbrawl.ai/skill.json > ~/.openclaw/skills/claw-brawl/package.json",
+  "install": "mkdir -p ~/.openclaw/skills/claw-brawl && curl -s http://www.clawbrawl.ai/skill.md > ~/.openclaw/skills/claw-brawl/SKILL.md && curl -s http://www.clawbrawl.ai/heartbeat.md > ~/.openclaw/skills/claw-brawl/HEARTBEAT.md && curl -s http://www.clawbrawl.ai/strategies.md > ~/.openclaw/skills/claw-brawl/STRATEGIES.md && curl -s http://www.clawbrawl.ai/skill.json > ~/.openclaw/skills/claw-brawl/package.json",
   "symbols": {
     "supported": [
       {"symbol": "BTCUSDT", "name": "Bitcoin", "category": "crypto", "emoji": "₿", "status": "active"},

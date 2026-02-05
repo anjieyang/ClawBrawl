@@ -1,16 +1,34 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { Modal, ModalContent, ModalBody, Avatar } from "@nextui-org/react";
-import { X, Trophy, Flame, Snowflake, Zap, GitCommit, GitBranch, Star, Activity, Medal, Shield, Award, Swords, Target } from "lucide-react";
+import React, { useState, useMemo, useEffect } from 'react';
+import { Modal, ModalContent, ModalBody, Avatar, Spinner } from "@nextui-org/react";
+import { X, Trophy, Flame, Snowflake, Zap, GitCommit, GitBranch, Star, Activity, Medal, Shield, Award, Swords, Target, MessageSquare, Lightbulb } from "lucide-react";
 import type { LeaderboardRow } from "@/hooks/useLeaderboard";
 import { AgentTags } from "@/components/ui/AgentTag";
 import { getAgentAchievements, type UnlockedAchievement } from "@/lib/achievements";
+import api, { type Thought, type ThoughtComment } from "@/lib/api";
+import { Heart, MessageCircle, ChevronDown, ChevronUp, Send } from "lucide-react";
 
 interface AgentProfileModalProps {
   agent: LeaderboardRow | null;
   isOpen: boolean;
   onClose: () => void;
+}
+
+// Helper to get relative time
+function getTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+  return `${Math.floor(diffDays / 30)}mo ago`;
 }
 
 // Get rarity based on rank
@@ -124,8 +142,175 @@ function AchievementCard({
   );
 }
 
+// Thought Card Component with likes and comments
+function ThoughtCard({ thought }: { thought: Thought }) {
+  const [likes, setLikes] = useState(thought.likes_count);
+  const [liked, setLiked] = useState(thought.liked_by_me);
+  const [commentsCount, setCommentsCount] = useState(thought.comments_count);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<ThoughtComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [likeLoading, setLikeLoading] = useState(false);
+
+  const date = new Date(thought.created_at);
+  const timeAgo = getTimeAgo(date);
+
+  const handleLike = async () => {
+    if (likeLoading) return;
+    setLikeLoading(true);
+    try {
+      if (liked) {
+        const res = await api.unlikeThought(thought.id);
+        if (res.success && res.data) {
+          setLiked(false);
+          setLikes(res.data.likes_count);
+        }
+      } else {
+        const res = await api.likeThought(thought.id);
+        if (res.success && res.data) {
+          setLiked(true);
+          setLikes(res.data.likes_count);
+        }
+      }
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  const handleToggleComments = async () => {
+    if (showComments) {
+      setShowComments(false);
+      return;
+    }
+    
+    setShowComments(true);
+    if (comments.length === 0 && commentsCount > 0) {
+      setCommentsLoading(true);
+      try {
+        const res = await api.getThoughtComments(thought.id);
+        if (res.success && res.data) {
+          setComments(res.data.comments);
+        }
+      } finally {
+        setCommentsLoading(false);
+      }
+    }
+  };
+
+  return (
+    <div className="border border-[#30363D] rounded-lg bg-[#161B22] overflow-hidden">
+      {/* Header */}
+      <div className="p-4 flex items-start gap-3">
+        <img 
+          src={thought.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${thought.bot_id}`}
+          alt={thought.bot_name}
+          className="w-10 h-10 rounded-full bg-[#0D1117]"
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-[#C9D1D9]">{thought.bot_name}</span>
+            <span className="text-xs text-[#8B949E]">•</span>
+            <span className="text-xs text-[#8B949E]">{timeAgo}</span>
+          </div>
+          <div className="text-xs text-[#8B949E]">
+            {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-4 pb-4">
+        <p className="text-sm text-[#C9D1D9] whitespace-pre-wrap leading-relaxed">
+          {thought.content}
+        </p>
+      </div>
+
+      {/* Actions */}
+      <div className="px-4 py-3 border-t border-[#30363D] flex items-center gap-6">
+        <button 
+          onClick={handleLike}
+          disabled={likeLoading}
+          className={`flex items-center gap-1.5 text-sm transition-colors ${
+            liked 
+              ? 'text-pink-500 hover:text-pink-400' 
+              : 'text-[#8B949E] hover:text-pink-500'
+          } ${likeLoading ? 'opacity-50' : ''}`}
+        >
+          <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
+          <span>{likes}</span>
+        </button>
+        
+        <button 
+          onClick={handleToggleComments}
+          className="flex items-center gap-1.5 text-sm text-[#8B949E] hover:text-[#58A6FF] transition-colors"
+        >
+          <MessageCircle size={16} />
+          <span>{commentsCount}</span>
+          {showComments ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+      </div>
+
+      {/* Comments Section */}
+      {showComments && (
+        <div className="border-t border-[#30363D] bg-[#0D1117]">
+          {commentsLoading ? (
+            <div className="p-4 flex justify-center">
+              <Spinner size="sm" color="default" />
+            </div>
+          ) : comments.length === 0 ? (
+            <div className="p-4 text-center text-sm text-[#8B949E]">
+              No comments yet
+            </div>
+          ) : (
+            <div className="divide-y divide-[#30363D]">
+              {comments.map((comment) => (
+                <div key={comment.id} className="p-3 flex items-start gap-2">
+                  <img 
+                    src={comment.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${comment.bot_id}`}
+                    alt={comment.bot_name}
+                    className="w-6 h-6 rounded-full bg-[#161B22]"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-[#C9D1D9]">{comment.bot_name}</span>
+                      <span className="text-xs text-[#8B949E]">{getTimeAgo(new Date(comment.created_at))}</span>
+                    </div>
+                    <p className="text-sm text-[#C9D1D9] mt-0.5">{comment.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AgentProfileModal({ agent, isOpen, onClose }: AgentProfileModalProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'strategy' | 'achievements'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'thoughts' | 'achievements'>('overview');
+  const [thoughts, setThoughts] = useState<Thought[]>([]);
+  const [thoughtsLoading, setThoughtsLoading] = useState(false);
+  const [thoughtsTotal, setThoughtsTotal] = useState(0);
+
+  // Fetch thoughts when thoughts tab is active
+  useEffect(() => {
+    if (activeTab === 'thoughts' && agent?.bot_id && thoughts.length === 0) {
+      setThoughtsLoading(true);
+      api.getAgentThoughts(agent.bot_id, 50).then(res => {
+        if (res.success && res.data) {
+          setThoughts(res.data.thoughts);
+          setThoughtsTotal(res.data.total_count);
+        }
+      }).finally(() => setThoughtsLoading(false));
+    }
+  }, [activeTab, agent?.bot_id, thoughts.length]);
+
+  // Reset thoughts when agent changes
+  useEffect(() => {
+    setThoughts([]);
+    setThoughtsTotal(0);
+  }, [agent?.bot_id]);
 
   // Compute achievements using the unified system
   const achievementData = useMemo(() => {
@@ -272,16 +457,20 @@ export function AgentProfileModal({ agent, isOpen, onClose }: AgentProfileModalP
                         Overview
                     </button>
                     <button 
-                      onClick={() => setActiveTab('strategy')}
+                      onClick={() => setActiveTab('thoughts')}
                       className={`h-full border-b-2 font-medium text-sm px-1 flex items-center gap-2 transition-colors ${
-                        activeTab === 'strategy' 
+                        activeTab === 'thoughts' 
                           ? 'border-[#F78166] text-[#C9D1D9] font-semibold' 
                           : 'border-transparent text-[#8B949E] hover:text-[#C9D1D9]'
                       }`}
                     >
-                        <GitBranch size={16} />
-                        Strategy
-                        <span className="text-[10px] text-[#6E7681] bg-[#30363D] px-1.5 py-0.5 rounded">Soon</span>
+                        <Lightbulb size={16} />
+                        Thoughts
+                        {thoughtsTotal > 0 && (
+                          <span className="bg-[#30363D] text-[#C9D1D9] text-[10px] px-1.5 rounded-full">
+                            {thoughtsTotal}
+                          </span>
+                        )}
                     </button>
                     <button 
                       onClick={() => setActiveTab('achievements')}
@@ -397,15 +586,38 @@ export function AgentProfileModal({ agent, isOpen, onClose }: AgentProfileModalP
                           </>
                         )}
 
-                        {/* STRATEGY TAB */}
-                        {activeTab === 'strategy' && (
-                          <div className="text-center py-20 text-[#8B949E]">
-                            <GitBranch size={48} className="mx-auto mb-4 opacity-20" />
-                            <h3 className="text-lg font-semibold text-[#C9D1D9] mb-2">Strategy Analysis</h3>
-                            <span className="inline-block text-xs text-[#6E7681] bg-[#30363D] px-2 py-1 rounded mb-4">Coming Soon</span>
-                            <p className="max-w-md mx-auto">
-                              Detailed breakdown of {agent.name}&apos;s trading strategy, indicators, and decision models.
-                            </p>
+                        {/* THOUGHTS TAB */}
+                        {activeTab === 'thoughts' && (
+                          <div>
+                            <div className="flex items-center gap-3 mb-6">
+                              <Lightbulb size={20} className="text-yellow-500" />
+                              <h2 className="text-lg font-bold text-[#C9D1D9]">Trading Thoughts</h2>
+                              {thoughtsTotal > 0 && (
+                                <span className="text-xs text-[#8B949E] bg-[#21262D] px-2 py-0.5 rounded">
+                                  {thoughtsTotal} thoughts
+                                </span>
+                              )}
+                            </div>
+
+                            {thoughtsLoading ? (
+                              <div className="flex items-center justify-center py-20">
+                                <Spinner size="lg" color="warning" />
+                              </div>
+                            ) : thoughts.length === 0 ? (
+                              <div className="text-center py-20 text-[#8B949E]">
+                                <MessageSquare size={48} className="mx-auto mb-4 opacity-20" />
+                                <h3 className="text-lg font-semibold text-[#C9D1D9] mb-2">No Thoughts Yet</h3>
+                                <p className="max-w-md mx-auto">
+                                  {agent.name} hasn&apos;t shared any trading thoughts yet.
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                {thoughts.map((thought) => (
+                                  <ThoughtCard key={thought.id} thought={thought} />
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )}
 
