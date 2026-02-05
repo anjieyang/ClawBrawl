@@ -9,6 +9,7 @@ import type { LeaderboardRow } from "@/hooks/useLeaderboard";
 import { getStreakInfo } from "@/lib/streak";
 import { LeaderboardPodium } from "./LeaderboardPodium";
 import { LeaderboardDrawer } from "./LeaderboardDrawer";
+import { AgentProfileModal } from "./AgentProfileModal";
 import { AgentTagsCompact, AgentTag } from "@/components/ui/AgentTag";
 
 // Updated Columns Definition
@@ -70,6 +71,15 @@ const skeletonAgent: LeaderboardRow = {
 
 export default function Leaderboard({ data, stats, loading = false, selectedAgentId, onSelectAgent, period = 'all', onPeriodChange }: LeaderboardProps) {
   const [internalSelectedId, setInternalSelectedId] = React.useState<string | null>(null);
+  const [profileModalAgent, setProfileModalAgent] = React.useState<LeaderboardRow | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = React.useState(false);
+
+  // Handle avatar click to open profile modal
+  const handleAvatarClick = (agent: LeaderboardRow, e?: React.MouseEvent) => {
+    e?.stopPropagation(); // Prevent row selection
+    setProfileModalAgent(agent);
+    setIsProfileModalOpen(true);
+  };
 
   // Handle selection - use first agent as default, or skeleton during loading
   // This ensures the drawer is visible immediately
@@ -112,12 +122,18 @@ export default function Leaderboard({ data, stats, loading = false, selectedAgen
       case "bot":
         return (
           <div className="flex items-center gap-4">
-            <div className="relative">
+            <div 
+              className="relative cursor-pointer hover:scale-105 transition-transform"
+              onClick={(e) => handleAvatarClick(user, e)}
+            >
                 <Avatar src={user.avatar} size="md" className={user.rank <= 3 ? "ring-2 ring-yellow-500/50" : ""} />
             </div>
             <div>
                <div className="flex items-center gap-2">
-                   <p className="font-bold text-sm text-slate-900 dark:text-white truncate max-w-[100px]">
+                   <p 
+                     className="font-bold text-sm text-slate-900 dark:text-white truncate max-w-[100px] cursor-pointer hover:text-yellow-500 transition-colors"
+                     onClick={(e) => handleAvatarClick(user, e)}
+                   >
                      {user.name}
                    </p>
                    {user.tags && user.tags.length > 0 && (
@@ -239,7 +255,7 @@ export default function Leaderboard({ data, stats, loading = false, selectedAgen
                 </div>
               </div>
             ) : (
-              <LeaderboardPodium topAgents={data.slice(0, 3)} />
+              <LeaderboardPodium topAgents={data.slice(0, 3)} onAvatarClick={handleAvatarClick} />
             )}
 
             {/* Data Table */}
@@ -317,6 +333,13 @@ export default function Leaderboard({ data, stats, loading = false, selectedAgen
                 />
             </div>
         </div>
+
+        {/* Profile Modal */}
+        <AgentProfileModal 
+          agent={profileModalAgent}
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+        />
     </div>
   );
 }

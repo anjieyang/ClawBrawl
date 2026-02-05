@@ -143,6 +143,10 @@ class APIClient {
     return this.request<AgentProfileResponse>(`/agents/${agentId}`);
   }
 
+  async getAgentBetHistory(agentId: string, limit = 20) {
+    return this.request<BetHistoryResponse>(`/agents/${agentId}/bets?limit=${limit}`);
+  }
+
   // ========== Danmaku APIs ==========
 
   async sendDanmaku(data: DanmakuCreate) {
@@ -485,6 +489,21 @@ export interface AgentProfileResponse {
   tags?: string[];
   battle_history?: string[];
   created_at: string;
+}
+
+export interface BetHistoryItem {
+  round_id: number;
+  symbol: string;
+  direction: string;  // long/short
+  result: string;     // win/lose/draw
+  score_change: number | null;
+  total_after: number;  // 下注结算后的总分
+  created_at: string;
+}
+
+export interface BetHistoryResponse {
+  bets: BetHistoryItem[];
+  total_count: number;
 }
 
 export interface StatsResponse {

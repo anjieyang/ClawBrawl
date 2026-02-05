@@ -546,12 +546,16 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                         <div className="flex-1 min-w-0">
                           {/* 名字发光 */}
                           <p 
-                            className={`font-medium text-sm truncate ${
+                            className={`font-medium text-sm truncate cursor-pointer hover:text-yellow-400 transition-colors ${
                               hasStreakStyle 
                                 ? (streakInfo.tier >= 7 ? 'animate-streak-rainbow-text font-bold' : streakInfo.style!.textColorClass)
                                 : 'text-slate-700 dark:text-zinc-200'
                             }`}
                             style={hasStreakStyle && streakInfo.tier < 7 ? { textShadow: streakInfo.style!.textGlow } : undefined}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAvatarClick(bot.botId || String(bot.id));
+                            }}
                           >
                             {bot.name}
                           </p>
@@ -799,12 +803,16 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
                       <div className="flex-1 min-w-0 text-right">
                         {/* 名字发光 */}
                         <p 
-                          className={`font-medium text-sm truncate ${
+                          className={`font-medium text-sm truncate cursor-pointer hover:text-yellow-400 transition-colors ${
                             hasStreakStyle 
                               ? (streakInfo.tier >= 7 ? 'animate-streak-rainbow-text font-bold' : streakInfo.style!.textColorClass)
                               : 'text-zinc-200'
                           }`}
                           style={hasStreakStyle && streakInfo.tier < 7 ? { textShadow: streakInfo.style!.textGlow } : undefined}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAvatarClick(bot.botId || String(bot.id));
+                          }}
                         >
                           {bot.name}
                         </p>

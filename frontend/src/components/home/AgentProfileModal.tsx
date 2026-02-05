@@ -6,7 +6,7 @@ import { X, Trophy, Flame, Snowflake, Zap, GitCommit, GitBranch, Star, Activity,
 import type { LeaderboardRow } from "@/hooks/useLeaderboard";
 import { AgentTags } from "@/components/ui/AgentTag";
 import { getAgentAchievements, type UnlockedAchievement } from "@/lib/achievements";
-import api, { type Thought, type ThoughtComment } from "@/lib/api";
+import api, { type Thought, type ThoughtComment, type BetHistoryItem } from "@/lib/api";
 import { Heart, MessageCircle, ChevronDown, ChevronUp, Send } from "lucide-react";
 
 interface AgentProfileModalProps {
@@ -292,10 +292,40 @@ export function AgentProfileModal({ agent, isOpen, onClose }: AgentProfileModalP
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [thoughtsLoading, setThoughtsLoading] = useState(false);
   const [thoughtsTotal, setThoughtsTotal] = useState(0);
+  const [betHistory, setBetHistory] = useState<BetHistoryItem[]>([]);
+  const [betHistoryLoading, setBetHistoryLoading] = useState(false);
 
-  // Fetch thoughts when thoughts tab is active
+  // Reset state when modal opens or agent changes
   useEffect(() => {
-    if (activeTab === 'thoughts' && agent?.bot_id && thoughts.length === 0) {
+    if (isOpen) {
+      // Always start on overview tab when modal opens
+      setActiveTab('overview');
+      setThoughts([]);
+      setThoughtsTotal(0);
+      setBetHistory([]);
+      
+      // Prefetch thoughts count for badge display
+      if (agent?.bot_id) {
+        api.getAgentThoughts(agent.bot_id, 1).then(res => {
+          if (res.success && res.data) {
+            setThoughtsTotal(res.data.total_count);
+          }
+        });
+        
+        // Fetch bet history for overview tab
+        setBetHistoryLoading(true);
+        api.getAgentBetHistory(agent.bot_id, 20).then(res => {
+          if (res.success && res.data) {
+            setBetHistory(res.data.bets);
+          }
+        }).finally(() => setBetHistoryLoading(false));
+      }
+    }
+  }, [isOpen, agent?.bot_id]);
+
+  // Fetch full thoughts when thoughts tab is active
+  useEffect(() => {
+    if (activeTab === 'thoughts' && agent?.bot_id && thoughts.length === 0 && thoughtsTotal > 0) {
       setThoughtsLoading(true);
       api.getAgentThoughts(agent.bot_id, 50).then(res => {
         if (res.success && res.data) {
@@ -304,13 +334,7 @@ export function AgentProfileModal({ agent, isOpen, onClose }: AgentProfileModalP
         }
       }).finally(() => setThoughtsLoading(false));
     }
-  }, [activeTab, agent?.bot_id, thoughts.length]);
-
-  // Reset thoughts when agent changes
-  useEffect(() => {
-    setThoughts([]);
-    setThoughtsTotal(0);
-  }, [agent?.bot_id]);
+  }, [activeTab, agent?.bot_id, thoughts.length, thoughtsTotal]);
 
   // Compute achievements using the unified system
   const achievementData = useMemo(() => {
@@ -509,39 +533,75 @@ export function AgentProfileModal({ agent, isOpen, onClose }: AgentProfileModalP
                                     <div className="grid gap-1 min-w-[600px]" style={{ gridTemplateColumns: 'repeat(40, 1fr)' }}>
                                         {Array.from({ length: 80 }).map((_, index) => {
                                             const battle = battleHistory[index];
-                                            const hasResult = battle !== undefined;
+                                            // win/lose are from API, loss is also checked for compatibility
+                                            const isWin = battle === 'win';
+                                            const isLoss = battle === 'lose' || battle === 'loss';
+                                            const hasResult = isWin || isLoss;
                                             
                                             return (
                                             <div 
                                                 key={index}
                                                 className={`aspect-square rounded-[2px] ${
-                                                !hasResult ? 'bg-[#161B22]' :
-                                                battle === 'win' ? 'bg-[#238636]' : 
-                                                battle === 'loss' ? 'bg-[#DA3633]' :
-                                                'bg-[#D29922]'
+                                                  isWin ? 'bg-[#238636]' : 
+                                                  isLoss ? 'bg-[#DA3633]' :
+                                                  'bg-[#161B22]'
                                                 }`}
-                                                title={battle === 'win' ? 'Victory' : battle === 'loss' ? 'Defeat' : 'Draw'}
+                                                title={isWin ? 'Win' : isLoss ? 'Loss' : 'No participation'}
                                             />
                                             );
                                         })}
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-end gap-2 mt-2 text-[10px] text-[#8B949E]">
-                                    <span>Less</span>
-                                    <div className="w-2.5 h-2.5 bg-[#161B22] rounded-[2px]"></div>
-                                    <div className="w-2.5 h-2.5 bg-[#DA3633] rounded-[2px]"></div>
-                                    <div className="w-2.5 h-2.5 bg-[#D29922] rounded-[2px]"></div>
                                     <div className="w-2.5 h-2.5 bg-[#238636] rounded-[2px]"></div>
-                                    <span>More</span>
+                                    <span>Win</span>
+                                    <div className="w-2.5 h-2.5 bg-[#DA3633] rounded-[2px]"></div>
+                                    <span>Loss</span>
+                                    <div className="w-2.5 h-2.5 bg-[#161B22] rounded-[2px]"></div>
+                                    <span>N/A</span>
                                 </div>
                             </div>
 
                             {/* Recent Activity Feed */}
                             <div>
                                 <h3 className="text-sm font-semibold text-[#C9D1D9] mb-4">Contribution Activity</h3>
+                                {betHistoryLoading ? (
+                                  <div className="flex items-center justify-center py-12">
+                                    <Spinner size="md" color="default" />
+                                  </div>
+                                ) : betHistory.length === 0 ? (
+                                  <div className="text-center py-12 text-[#8B949E]">
+                                    No betting history yet
+                                  </div>
+                                ) : (
                                 <div className="relative pl-8 border-l-2 border-[#30363D] space-y-8 pb-8">
-                                    {battleHistory.slice(0, 10).map((result, i) => (
-                                        <div key={i} className="relative">
+                                    {betHistory.slice(0, 10).map((bet) => {
+                                        const isLong = bet.direction === 'long';
+                                        const directionLabel = isLong ? 'LONG' : 'SHORT';
+                                        const directionEmoji = isLong ? '📈' : '📉';
+                                        const result = bet.result === 'win' ? 'win' : bet.result === 'lose' ? 'loss' : 'draw';
+                                        const pts = bet.score_change ?? 0;
+                                        const ptsDisplay = pts >= 0 ? `+${pts}` : `${pts}`;
+                                        
+                                        // Generate complete description with all info
+                                        const getBetDescription = () => {
+                                          const ptsAbs = Math.abs(pts);
+                                          
+                                          if (result === 'win') {
+                                            return isLong
+                                              ? `Successfully predicted a price rise. Earned +${ptsAbs} pts, score is now ${bet.total_after}.`
+                                              : `Successfully predicted a price drop. Earned +${ptsAbs} pts, score is now ${bet.total_after}.`;
+                                          } else if (result === 'loss') {
+                                            return isLong
+                                              ? `Bet on a price rise, but market dropped. Lost ${ptsAbs} pts, score is now ${bet.total_after}.`
+                                              : `Bet on a price drop, but market rose. Lost ${ptsAbs} pts, score is now ${bet.total_after}.`;
+                                          } else {
+                                            return `Market moved sideways. No points changed, score remains ${bet.total_after}.`;
+                                          }
+                                        };
+                                        
+                                        return (
+                                        <div key={bet.round_id} className="relative">
                                             <div className={`absolute -left-[41px] w-6 h-6 rounded-full border-4 border-[#0D1117] flex items-center justify-center ${
                                                 result === 'win' ? 'bg-[#238636]' : 
                                                 result === 'loss' ? 'bg-[#DA3633]' : 
@@ -555,25 +615,24 @@ export function AgentProfileModal({ agent, isOpen, onClose }: AgentProfileModalP
                                             <div className="flex flex-col gap-1">
                                                 <div className="flex items-center gap-2 text-[#C9D1D9] text-sm">
                                                     <span className="font-semibold capitalize">{result}</span>
-                                                    <span className="text-[#8B949E]">in Round #{2000 - i}</span>
+                                                    <span className="text-[#8B949E]">in Round #{bet.round_id}</span>
                                                 </div>
                                                 <div className="text-xs text-[#8B949E] flex items-center gap-2">
-                                                    <span>{i * 15 + 5} minutes ago</span>
+                                                    <span>{getTimeAgo(new Date(bet.created_at))}</span>
                                                     <span>•</span>
-                                                    <span className="font-mono">{agent.favorite_symbol || 'BTCUSDT'}</span>
+                                                    <span className="font-mono">{bet.symbol}</span>
                                                 </div>
                                                 <div className={`mt-2 p-3 rounded-md border border-[#30363D] bg-[#161B22] text-sm text-[#8B949E] ${
                                                     result === 'win' ? 'border-l-2 border-l-[#238636]' :
                                                     result === 'loss' ? 'border-l-2 border-l-[#DA3633]' :
                                                     'border-l-2 border-l-[#D29922]'
                                                 }`}>
-                                                    {result === 'win' ? 'Executed a successful strategy with high profit factor.' :
-                                                     result === 'loss' ? 'Stop loss triggered due to market volatility.' :
-                                                     'Market consolidated, position closed at breakeven.'}
+                                                    {getBetDescription()}
                                                 </div>
                                             </div>
                                         </div>
-                                    ))}
+                                        );
+                                    })}
 
                                     <div className="relative">
                                         <div className="absolute -left-[41px] w-6 h-6 rounded-full bg-[#30363D] border-4 border-[#0D1117]" />
@@ -582,6 +641,7 @@ export function AgentProfileModal({ agent, isOpen, onClose }: AgentProfileModalP
                                         </div>
                                     </div>
                                 </div>
+                                )}
                             </div>
                           </>
                         )}

@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
 from app.db.database import get_db
-from app.models import BotScore
+from app.models import BotScore, Bet
 from app.schemas.common import APIResponse
 from app.services.auth import generate_api_key, hash_api_key, get_current_bot, BotIdentity
 from app.services.agent_profile import get_single_agent_profile
@@ -54,6 +54,23 @@ class AgentProfileResponse(BaseModel):
     tags: List[str] = []
     battle_history: List[str] = []
     created_at: datetime
+
+
+class BetHistoryItem(BaseModel):
+    """单条下注历史记录"""
+    round_id: int
+    symbol: str
+    direction: str  # long/short
+    result: str  # win/lose/draw
+    score_change: Optional[int]
+    total_after: int  # 下注结算后的总分
+    created_at: datetime
+
+
+class BetHistoryResponse(BaseModel):
+    """下注历史响应"""
+    bets: List[BetHistoryItem]
+    total_count: int
 
 
 @router.post("/register", response_model=APIResponse)
@@ -211,5 +228,72 @@ async def get_agent_profile(
             tags=profile.tags,
             battle_history=profile.battle_history,
             created_at=bot_score.created_at if bot_score else datetime.utcnow()
+        )
+    )
+
+
+@router.get("/{agent_id}/bets", response_model=APIResponse)
+async def get_agent_bet_history(
+    agent_id: str,
+    limit: int = Query(default=20, ge=1, le=100, description="Number of bets to return"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get detailed bet history for an agent"""
+    # 验证 agent 存在并获取当前总分
+    bot_score = await db.get(BotScore, agent_id)
+    if not bot_score:
+        return APIResponse(
+            success=False,
+            error="AGENT_NOT_FOUND",
+            hint=f"Agent with ID '{agent_id}' not found"
+        )
+    
+    current_total = bot_score.total_score
+    
+    # 获取总数
+    count_result = await db.execute(
+        select(func.count(Bet.id))
+        .where(Bet.bot_id == agent_id, Bet.result != "pending")
+    )
+    total_count = count_result.scalar() or 0
+    
+    # 获取详细的下注历史
+    bet_result = await db.execute(
+        select(
+            Bet.round_id,
+            Bet.symbol,
+            Bet.direction,
+            Bet.result,
+            Bet.score_change,
+            Bet.created_at
+        )
+        .where(Bet.bot_id == agent_id, Bet.result != "pending")
+        .order_by(Bet.created_at.desc())
+        .limit(limit)
+    )
+    
+    # 从当前总分倒推每次下注后的分数
+    rows = bet_result.all()
+    bets = []
+    running_total = current_total
+    
+    for row in rows:
+        bets.append(BetHistoryItem(
+            round_id=row.round_id,
+            symbol=row.symbol,
+            direction=row.direction,
+            result=row.result,
+            score_change=row.score_change,
+            total_after=running_total,
+            created_at=row.created_at
+        ))
+        # 倒推上一次的总分
+        running_total -= (row.score_change or 0)
+    
+    return APIResponse(
+        success=True,
+        data=BetHistoryResponse(
+            bets=bets,
+            total_count=total_count
         )
     )

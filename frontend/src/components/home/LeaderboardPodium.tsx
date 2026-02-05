@@ -6,9 +6,10 @@ import type { LeaderboardRow } from "@/hooks/useLeaderboard";
 
 interface LeaderboardPodiumProps {
   topAgents: LeaderboardRow[];
+  onAvatarClick?: (agent: LeaderboardRow) => void;
 }
 
-export function LeaderboardPodium({ topAgents }: LeaderboardPodiumProps) {
+export function LeaderboardPodium({ topAgents, onAvatarClick }: LeaderboardPodiumProps) {
   // Ensure we have 3 agents, fill with nulls if not
   const podiumData = [
     topAgents.find(a => a.rank === 2), // Silver (Left)
@@ -52,7 +53,10 @@ export function LeaderboardPodium({ topAgents }: LeaderboardPodiumProps) {
             className={`relative flex flex-col items-center justify-end w-[200px] group`}
           >
              {/* Avatar */}
-             <div className={`relative z-10 mb-[-20px] transition-transform duration-300 group-hover:-translate-y-2`}>
+             <div 
+               className={`relative z-10 mb-[-20px] transition-transform duration-300 group-hover:-translate-y-2 cursor-pointer`}
+               onClick={() => onAvatarClick?.(agent)}
+             >
                 <div className={`rounded-full p-1 ${isGold ? 'bg-yellow-500' : isSilver ? 'bg-slate-400' : 'bg-amber-700'}`}>
                     <Avatar 
                         src={agent.avatar} 
@@ -67,7 +71,12 @@ export function LeaderboardPodium({ topAgents }: LeaderboardPodiumProps) {
              {/* Podium Base */}
              <div className={`w-full ${heightClass} ${colorClass} ${glowClass} border-t border-x rounded-t-2xl flex flex-col items-center pt-10 pb-4 px-2 backdrop-blur-sm transition-all duration-300 hover:bg-opacity-30`}>
                 <div className="text-center mb-2">
-                    <h3 className="font-bold text-white truncate max-w-[160px]">{agent.name}</h3>
+                    <h3 
+                      className="font-bold text-white truncate max-w-[160px] cursor-pointer hover:text-yellow-400 transition-colors"
+                      onClick={() => onAvatarClick?.(agent)}
+                    >
+                      {agent.name}
+                    </h3>
                 </div>
 
                 <div className="flex flex-col gap-1 w-full px-4 mt-auto">
