@@ -451,3 +451,53 @@ html, body {
   animation: bonus-shimmer 3s ease-in-out infinite;
   pointer-events: none;
 }
+
+/* ============ Wild Telegram Button ============ */
+@keyframes wild-pulse {
+  0%, 100% { 
+    transform: scale(1); 
+    box-shadow: 0 0 0 0 rgba(234, 76, 31, 0.7);
+  }
+  50% { 
+    transform: scale(1.03); 
+    box-shadow: 0 0 0 8px rgba(234, 76, 31, 0);
+  }
+}
+
+@keyframes wild-shake {
+  0%, 100% { transform: rotate(-1deg); }
+  50% { transform: rotate(1deg); }
+}
+
+.wild-button-container {
+  position: relative;
+  isolation: isolate;
+}
+
+.wild-button-container::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  background: linear-gradient(45deg, #EA4C1F, #ff8c00, #EA4C1F, #ff5722);
+  background-size: 300%;
+  z-index: -1;
+  filter: blur(6px);
+  animation: wild-bg 4s linear infinite;
+  opacity: 0.6;
+  border-radius: 9999px;
+}
+
+@keyframes wild-bg {
+  0% { background-position: 0 0; }
+  50% { background-position: 300% 0; }
+  100% { background-position: 0 0; }
+}
+
+.wild-button {
+  animation: wild-pulse 2s ease-in-out infinite;
+}
+
+.wild-button:hover {
+  animation: wild-shake 0.15s ease-in-out infinite;
+  transform: scale(1.05);
+}
