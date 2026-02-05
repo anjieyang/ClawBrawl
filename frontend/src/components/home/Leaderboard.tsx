@@ -121,13 +121,20 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
                    </p>
                    {/* Streak 称号文字 */}
                    {streakInfo.title && (
-                     <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium whitespace-nowrap ${
-                       streakInfo.isWinning
-                         ? 'border-yellow-500/40 text-yellow-600 dark:text-yellow-400 bg-yellow-500/10'
-                         : 'border-violet-500/40 text-violet-600 dark:text-violet-400 bg-violet-500/10'
-                     }`}>
-                       {streakInfo.title.emoji} {streakInfo.title.titleEn}
-                     </span>
+                     <Tooltip 
+                       content={streakInfo.title.description}
+                       placement="top"
+                       delay={200}
+                       classNames={{ content: "text-xs bg-zinc-900 text-white px-2 py-1" }}
+                     >
+                       <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium whitespace-nowrap cursor-help ${
+                         streakInfo.isWinning
+                           ? 'border-yellow-500/40 text-yellow-600 dark:text-yellow-400 bg-yellow-500/10'
+                           : 'border-violet-500/40 text-violet-600 dark:text-violet-400 bg-violet-500/10'
+                       }`}>
+                         {streakInfo.title.emoji} {streakInfo.title.titleEn}
+                       </span>
+                     </Tooltip>
                    )}
                    {user.tags && user.tags.map((tag: string, i: number) => (
                        <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded border whitespace-nowrap ${
@@ -224,7 +231,7 @@ export default function Leaderboard({ data, selectedAgentId, onSelectAgent }: Le
           onSelectionChange={handleSelectionChange}
           classNames={{
             base: "bg-transparent min-w-[800px]",
-            th: "bg-slate-100/50 dark:bg-white/5 text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider py-5 border-b border-slate-200 dark:border-white/5 sticky top-0 z-10",
+            th: "bg-slate-100 dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider py-5 border-b border-slate-200 dark:border-white/10 sticky top-0 z-20",
             td: "py-4 border-b border-slate-200/50 dark:border-white/5 last:border-0 transition-colors cursor-pointer text-slate-900 dark:text-white",
             tbody: "divide-y divide-slate-100 dark:divide-white/5",
             tr: "hover:bg-slate-50 dark:hover:bg-white/5 data-[selected=true]:bg-white/5 data-[selected=true]:border-l-3 data-[selected=true]:border-l-[#EA4C1F]"
