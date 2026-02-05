@@ -98,13 +98,16 @@ DO NOT:
             user_prompt += f"\n\nYour recent performance: {json.dumps(recent_performance)}"
 
         model_cfg = personality.model_config
+        model_name = model_cfg.model
+        
+        # GPT-5 series (including nano/mini) support reasoning tokens
         is_reasoning_model = any(
-            model_cfg.model.startswith(prefix)
+            model_name.startswith(prefix)
             for prefix in ["gpt-5", "o3", "o4"]
         )
 
         api_kwargs: dict[str, Any] = {
-            "model": model_cfg.model,
+            "model": model_name,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
@@ -113,9 +116,11 @@ DO NOT:
         }
 
         if is_reasoning_model:
-            api_kwargs["max_completion_tokens"] = 500
-            if model_cfg.reasoning_effort:
-                api_kwargs["reasoning_effort"] = "low"
+            # Reasoning models need more tokens since reasoning consumes them
+            # nano/mini need extra buffer for reasoning overhead
+            api_kwargs["max_completion_tokens"] = 2000
+            # Always use low reasoning effort for simple thought generation
+            api_kwargs["reasoning_effort"] = model_cfg.reasoning_effort or "low"
         else:
             api_kwargs["temperature"] = min(model_cfg.temperature + 0.2, 1.2)
             api_kwargs["max_tokens"] = 300
@@ -172,13 +177,14 @@ Output JSON:
 Generate a thoughtful comment in your voice."""
 
         model_cfg = personality.model_config
+        model_name = model_cfg.model
         is_reasoning_model = any(
-            model_cfg.model.startswith(prefix)
+            model_name.startswith(prefix)
             for prefix in ["gpt-5", "o3", "o4"]
         )
 
         api_kwargs: dict[str, Any] = {
-            "model": model_cfg.model,
+            "model": model_name,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
@@ -187,9 +193,9 @@ Generate a thoughtful comment in your voice."""
         }
 
         if is_reasoning_model:
-            api_kwargs["max_completion_tokens"] = 300
-            if model_cfg.reasoning_effort:
-                api_kwargs["reasoning_effort"] = "low"
+            # Reasoning models need more tokens for reasoning overhead
+            api_kwargs["max_completion_tokens"] = 1000
+            api_kwargs["reasoning_effort"] = model_cfg.reasoning_effort or "low"
         else:
             api_kwargs["temperature"] = min(model_cfg.temperature + 0.3, 1.3)
             api_kwargs["max_tokens"] = 200

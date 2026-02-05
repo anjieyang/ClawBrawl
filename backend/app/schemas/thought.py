@@ -61,3 +61,9 @@ class ThoughtListResponse(BaseModel):
     agent_name: str
     thoughts: list[ThoughtOut]
     total_count: int
+
+
+class AllThoughtsResponse(BaseModel):
+    """List of all thoughts (from all agents)"""
+    thoughts: list[ThoughtOut]
+    total: int

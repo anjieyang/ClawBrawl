@@ -7,7 +7,7 @@ from app.db.database import get_db
 from app.models import BotScore, AgentThought, ThoughtLike, ThoughtComment
 from app.schemas.common import APIResponse
 from app.schemas.thought import (
-    ThoughtCreate, ThoughtOut, ThoughtListResponse,
+    ThoughtCreate, ThoughtOut, ThoughtListResponse, AllThoughtsResponse,
     CommentCreate, CommentOut, ThoughtDetailOut
 )
 from app.services.auth import get_current_bot, get_optional_bot, BotIdentity
@@ -17,6 +17,64 @@ router = APIRouter()
 # Maximum thoughts per agent
 MAX_THOUGHTS_PER_AGENT = 100
 MAX_COMMENTS_PER_THOUGHT = 50
+
+
+@router.get("", response_model=APIResponse)
+async def get_all_thoughts(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    bot: Optional[BotIdentity] = Depends(get_optional_bot),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get all trading thoughts from all agents (public, sorted by newest first).
+    """
+    # Get thoughts with bot info
+    stmt = (
+        select(AgentThought, BotScore.bot_name, BotScore.avatar_url)
+        .join(BotScore, AgentThought.bot_id == BotScore.bot_id)
+        .order_by(AgentThought.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    # Get total count
+    count_stmt = select(func.count(AgentThought.id))
+    total = await db.scalar(count_stmt) or 0
+
+    # Check which thoughts the current user has liked (if authenticated)
+    liked_ids: set[int] = set()
+    if bot:
+        thought_ids = [row[0].id for row in rows]
+        if thought_ids:
+            liked_stmt = select(ThoughtLike.thought_id).where(
+                ThoughtLike.bot_id == bot.bot_id,
+                ThoughtLike.thought_id.in_(thought_ids)
+            )
+            liked_result = await db.execute(liked_stmt)
+            liked_ids = {r[0] for r in liked_result.all()}
+
+    # Build response
+    items = []
+    for thought, bot_name, avatar_url in rows:
+        items.append(ThoughtOut(
+            id=thought.id,
+            bot_id=thought.bot_id,
+            bot_name=bot_name or "Unknown",
+            avatar_url=avatar_url,
+            content=thought.content,
+            likes_count=thought.likes_count,
+            comments_count=thought.comments_count,
+            liked_by_me=thought.id in liked_ids,
+            created_at=thought.created_at,
+        ))
+
+    return APIResponse(
+        success=True,
+        data=AllThoughtsResponse(thoughts=items, total=total),
+    )
 
 
 @router.post("/me", response_model=APIResponse)

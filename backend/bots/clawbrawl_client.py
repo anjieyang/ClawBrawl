@@ -498,7 +498,7 @@ class ClawBrawlClient:
             if not data.get("success") or not data.get("data"):
                 return []
 
-            return data["data"].get("items", [])
+            return data["data"].get("thoughts", [])
         except Exception:
             return []
 

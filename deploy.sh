@@ -122,6 +122,10 @@ if [ ! -L skill.json ]; then
     ln -sf ../../skill/package.json skill.json
     print_status "Created symlink: skill.json -> ../../skill/package.json"
 fi
+if [ ! -L strategies.md ]; then
+    ln -sf ../../skill/STRATEGIES.md strategies.md
+    print_status "Created symlink: strategies.md -> ../../skill/STRATEGIES.md"
+fi
 
 print_success "Skill symlinks verified"
 
