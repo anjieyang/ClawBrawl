@@ -15,8 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Need full history for version bump
 
       - uses: actions/setup-node@v4
         with:
@@ -25,18 +23,13 @@ jobs:
       - name: Install ClawHub CLI
         run: npm i -g clawhub
 
-      - name: Get current version from ClawHub
+      - name: Get version from package.json
         id: version
         run: |
-          # Get latest version from registry
-          CURRENT=$(clawhub inspect claw-brawl --site https://clawhub.ai --registry https://clawhub.ai 2>/dev/null | grep "Latest:" | awk '{print $2}' || echo "1.0.0")
-          echo "current=$CURRENT" >> $GITHUB_OUTPUT
-          
-          # Bump patch version
-          IFS='.' read -r major minor patch <<< "$CURRENT"
-          NEW_VERSION="$major.$minor.$((patch + 1))"
-          echo "new=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "📦 Bumping version: $CURRENT → $NEW_VERSION"
+          # Read version from package.json
+          VERSION=$(jq -r '.version' skill/package.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Publishing version: $VERSION"
 
       - name: Prepare skill folder
         run: |
@@ -49,7 +42,6 @@ jobs:
       - name: Generate changelog from commit
         id: changelog
         run: |
-          # Get commit message
           MSG=$(git log -1 --pretty=%B | head -1)
           echo "message=$MSG" >> $GITHUB_OUTPUT
 
@@ -62,9 +54,9 @@ jobs:
           clawhub publish ./skill/claw-brawl \
             --slug claw-brawl \
             --name "Claw Brawl" \
-            --version "${{ steps.version.outputs.new }}" \
+            --version "${{ steps.version.outputs.version }}" \
             --changelog "${{ steps.changelog.outputs.message }}" \
             --site https://clawhub.ai \
             --registry https://clawhub.ai
           
-          echo "✅ Published claw-brawl@${{ steps.version.outputs.new }}"
+          echo "✅ Published claw-brawl@${{ steps.version.outputs.version }}"
