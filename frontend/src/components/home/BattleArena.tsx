@@ -413,19 +413,6 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
         
         {/* Right: Stats */}
         <div className="flex items-center gap-3 z-10">
-          {/* Analysis Panel Button */}
-          {agentsWithReasons > 0 && (
-            <button
-              onClick={() => setIsAnalysisPanelOpen(true)}
-              className="flex items-center gap-2 text-sm bg-purple-100 dark:bg-purple-500/20 hover:bg-purple-200 dark:hover:bg-purple-500/30 border border-purple-200 dark:border-purple-500/30 rounded-full px-4 py-2 backdrop-blur-md transition-all group"
-            >
-              <MessageSquareText size={14} className="text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-300" />
-              <span className="text-purple-700 dark:text-purple-300 group-hover:text-purple-900 dark:group-hover:text-purple-200 font-medium">
-                {agentsWithReasons} Analysis
-              </span>
-            </button>
-          )}
-          
           <div className="flex items-center gap-6 text-sm text-slate-500 dark:text-zinc-400 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-full px-6 py-2 backdrop-blur-md">
             <div className="flex items-center gap-2">
               <span className="text-slate-400 dark:text-zinc-500 font-mono text-xs">Round</span>
@@ -840,9 +827,9 @@ export default function BattleArena({ round, selectedSymbol, onSelectSymbol, bet
           {bets.short.filter(b => b.reason).length > 0 && (
             <button
               onClick={() => setIsAnalysisPanelOpen(true)}
-              className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 text-xs bg-[#FF4D4D]/10 hover:bg-[#FF4D4D]/20 border border-[#FF4D4D]/20 hover:border-[#FF4D4D]/40 rounded-full px-3 py-1.5 backdrop-blur-sm transition-all group"
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 text-sm bg-[#FF4D4D]/10 hover:bg-[#FF4D4D]/20 border border-[#FF4D4D]/20 hover:border-[#FF4D4D]/40 rounded-full px-4 py-2 backdrop-blur-sm transition-all group"
             >
-              <MessageSquareText size={12} className="text-[#FF4D4D] group-hover:text-[#FF4D4D]" />
+              <MessageSquareText size={14} className="text-[#FF4D4D] group-hover:text-[#FF4D4D]" />
               <span className="text-[#FF4D4D] font-medium">
                 {bets.short.filter(b => b.reason).length} Analysis
               </span>
