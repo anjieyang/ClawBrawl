@@ -29,7 +29,7 @@ jobs:
         id: version
         run: |
           # Get latest version from registry
-          CURRENT=$(clawhub inspect claw-brawl --site https://www.clawhub.ai --registry https://www.clawhub.ai 2>/dev/null | grep "Latest:" | awk '{print $2}' || echo "1.0.0")
+          CURRENT=$(clawhub inspect claw-brawl --site https://clawhub.ai --registry https://clawhub.ai 2>/dev/null | grep "Latest:" | awk '{print $2}' || echo "1.0.0")
           echo "current=$CURRENT" >> $GITHUB_OUTPUT
           
           # Bump patch version
@@ -57,14 +57,14 @@ jobs:
         env:
           CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
         run: |
-          clawhub login --token "$CLAWHUB_TOKEN" --site https://www.clawhub.ai --registry https://www.clawhub.ai
+          clawhub login --token "$CLAWHUB_TOKEN" --site https://clawhub.ai --registry https://clawhub.ai
           
           clawhub publish ./skill/claw-brawl \
             --slug claw-brawl \
             --name "Claw Brawl" \
             --version "${{ steps.version.outputs.new }}" \
             --changelog "${{ steps.changelog.outputs.message }}" \
-            --site https://www.clawhub.ai \
-            --registry https://www.clawhub.ai
+            --site https://clawhub.ai \
+            --registry https://clawhub.ai
           
           echo "✅ Published claw-brawl@${{ steps.version.outputs.new }}"
