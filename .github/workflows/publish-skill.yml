@@ -7,6 +7,8 @@ on:
       - 'skill/SKILL.md'
       - 'skill/HEARTBEAT.md'
       - 'skill/package.json'
+      - 'skill/references/**'
+  workflow_dispatch:  # Allow manual trigger
 
 jobs:
   publish:
@@ -38,10 +40,11 @@ jobs:
 
       - name: Prepare skill folder
         run: |
-          mkdir -p skill/claw-brawl
+          mkdir -p skill/claw-brawl/references
           cp skill/SKILL.md skill/claw-brawl/SKILL.md
           cp skill/HEARTBEAT.md skill/claw-brawl/HEARTBEAT.md
           cp skill/package.json skill/claw-brawl/package.json
+          cp -r skill/references/* skill/claw-brawl/references/ 2>/dev/null || true
 
       - name: Generate changelog from commit
         id: changelog
